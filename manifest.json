@@ -1,0 +1,55 @@
+{
+  "manifest_version": 3,
+  "name": "Copy YouTube Comments for LLM",
+  "version": "1.0.0",
+  "description": "Собирает комментарии под YouTube-видео, формирует готовый prompt и копирует его в буфер обмена для ручной вставки в ChatGPT/Claude/Gemini.",
+  "permissions": ["storage", "activeTab", "scripting", "offscreen", "clipboardWrite"],
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://chat.openai.com/*",
+    "https://chatgpt.com/*",
+    "https://claude.ai/*",
+    "https://gemini.google.com/*",
+    "https://www.perplexity.ai/*"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Copy for LLM"
+  },
+  "options_page": "options/options.html",
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/watch*"],
+      "js": [
+        "core/storage.js",
+        "core/filter.js",
+        "core/targets.js",
+        "core/promptBuilder.js",
+        "core/clipboard.js",
+        "core/commentCollector.js",
+        "core/openTarget.js",
+        "content/youtube.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://chat.openai.com/*",
+        "https://chatgpt.com/*",
+        "https://claude.ai/*",
+        "https://gemini.google.com/*",
+        "https://www.perplexity.ai/*"
+      ],
+      "js": ["content/autopaste.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

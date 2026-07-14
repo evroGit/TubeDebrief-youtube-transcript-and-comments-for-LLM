@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Copy for LLM — Settings</title>
+  <style>
+    body {
+      font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+      max-width: 480px;
+      margin: 24px auto;
+      font-size: 14px;
+      color: #222;
+    }
+    h1 {
+      font-size: 18px;
+    }
+    label {
+      display: block;
+      margin-bottom: 14px;
+    }
+    label span {
+      display: block;
+      margin-bottom: 4px;
+      color: #555;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    input[type="number"], select, input[type="text"], textarea {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 6px 8px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 220px;
+      line-height: 1.4;
+    }
+    .hint {
+      font-size: 12px;
+      color: #777;
+      margin-top: 4px;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    button {
+      padding: 8px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      background: #065fd4;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button.secondary {
+      color: #065fd4;
+      background: #fff;
+      border: 1px solid #ccc;
+      font-weight: 500;
+    }
+    #saved {
+      margin-left: 10px;
+      color: #2e7d32;
+    }
+  </style>
+</head>
+<body>
+  <h1>Copy for LLM — настройки</h1>
+
+  <label>
+    <span>Min length (символов)</span>
+    <input type="number" id="minChars" min="0" />
+  </label>
+
+  <label>
+    <span>Min words</span>
+    <input type="number" id="minWords" min="0" />
+  </label>
+
+  <label>
+    <span>Max comments</span>
+    <input type="number" id="maxComments" min="1" />
+  </label>
+
+  <label>
+    <span>Max total characters</span>
+    <input type="number" id="maxTotalChars" min="1000" />
+  </label>
+
+  <div class="row">
+    <input type="checkbox" id="includeReplies" />
+    <label for="includeReplies" style="margin:0;">Include replies</label>
+  </div>
+
+  <label>
+    <span>Custom URL (для кнопки "Open Custom")</span>
+    <input type="text" id="customLLMUrl" placeholder="https://..." />
+  </label>
+
+  <label>
+    <span>Prompt для LLM</span>
+    <textarea id="promptTemplate" spellcheck="false"></textarea>
+    <div class="hint">
+      Плейсхолдеры: <code>{{videoTitle}}</code>, <code>{{videoUrl}}</code>, <code>{{count}}</code>.
+      Список комментариев <code>[1] ... [2] ...</code> добавляется автоматически после этого текста.
+    </div>
+  </label>
+
+  <button id="reset-prompt" class="secondary" type="button">Восстановить prompt по умолчанию</button>
+
+  <hr style="border:none;border-top:1px solid #eee;margin:18px 0;" />
+
+  <button id="save">Сохранить</button>
+  <span id="saved"></span>
+
+  <script src="../core/storage.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>
