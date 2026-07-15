@@ -3,32 +3,50 @@
 // - reflects collection progress on the extension icon (status) and badge
 //   (comment count), so readiness is visible even when the popup is closed.
 
-const DEFAULT_ICONS = {
+// Paths are resolved with chrome.runtime.getURL() into absolute
+// chrome-extension://<id>/... URLs — a plain relative path like
+// 'icons/icon16.png' resolves against the service worker script's own
+// location (background/) in MV3, not the extension root, which silently
+// 404s ("Failed to fetch") every time, not just intermittently.
+function iconSet(paths) {
+  const resolved = {};
+  for (const [size, path] of Object.entries(paths)) {
+    resolved[size] = chrome.runtime.getURL(path);
+  }
+  return resolved;
+}
+
+const DEFAULT_ICONS = iconSet({
   16: 'icons/icon16.png',
   48: 'icons/icon48.png',
   128: 'icons/icon128.png',
-};
+});
 
 const STATUS_ICONS = {
-  collecting: {
+  collecting: iconSet({
     16: 'icons/status/icon16-collecting.png',
     48: 'icons/status/icon48-collecting.png',
     128: 'icons/status/icon128-collecting.png',
-  },
-  done: {
+  }),
+  done: iconSet({
     16: 'icons/status/icon16-done.png',
     48: 'icons/status/icon48-done.png',
     128: 'icons/status/icon128-done.png',
-  },
-  error: {
+  }),
+  error: iconSet({
     16: 'icons/status/icon16-error.png',
     48: 'icons/status/icon48-error.png',
     128: 'icons/status/icon128-error.png',
-  },
+  }),
 };
 
-function setStatusIcon(tabId, status) {
-  chrome.action.setIcon({ tabId, path: STATUS_ICONS[status] || DEFAULT_ICONS });
+async function setStatusIcon(tabId, status) {
+  const path = STATUS_ICONS[status] || DEFAULT_ICONS;
+  try {
+    await chrome.action.setIcon({ tabId, path });
+  } catch (err) {
+    console.error('[yt-llm background] setIcon failed', err?.message);
+  }
 }
 
 function setBadge(tabId, text) {
@@ -125,20 +143,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const tabId = sender.tab?.id;
     if (tabId == null) return true;
 
-    if (message.status === 'collecting') {
-      setStatusIcon(tabId, 'collecting');
-      setBadge(tabId, String(message.filtered ?? 0));
-    } else if (message.status === 'done') {
-      setStatusIcon(tabId, 'done');
-      setBadge(tabId, '');
-    } else if (message.status === 'error') {
-      setStatusIcon(tabId, 'error');
-      setBadge(tabId, '!');
-    } else if (message.status === 'clear') {
-      setStatusIcon(tabId, 'clear');
-      setBadge(tabId, '');
-    }
-    sendResponse?.({ ok: true });
+    (async () => {
+      if (message.status === 'collecting') {
+        await setStatusIcon(tabId, 'collecting');
+        setBadge(tabId, String(message.filtered ?? 0));
+      } else if (message.status === 'done') {
+        await setStatusIcon(tabId, 'done');
+        setBadge(tabId, '');
+      } else if (message.status === 'error') {
+        await setStatusIcon(tabId, 'error');
+        setBadge(tabId, '!');
+      } else if (message.status === 'clear') {
+        await setStatusIcon(tabId, 'clear');
+        setBadge(tabId, '');
+      }
+      sendResponse?.({ ok: true });
+    })();
     return true;
   }
 

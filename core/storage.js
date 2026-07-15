@@ -2,8 +2,8 @@
 // Requires core/i18n.js to be loaded first (DEFAULT_UI_LANGUAGE, getDefaultPromptTemplate).
 
 const DEFAULT_SETTINGS = {
-  minChars: 100,
-  minWords: 15,
+  minChars: 150,
+  minWords: 20,
   maxComments: 40,
   maxTotalChars: 60000,
   includeReplies: true,

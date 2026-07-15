@@ -10,16 +10,24 @@ async function copyTextToClipboard(text) {
   try {
     const response = await chrome.runtime.sendMessage({ type: 'copy-text', text });
     if (response?.ok) return true;
-    console.warn('[yt-llm clipboard] offscreen copy failed, falling back to local write', response);
+    console.warn('[yt-llm clipboard] offscreen copy failed, falling back to local write', response?.reason);
   } catch (err) {
-    console.warn('[yt-llm clipboard] could not reach background for offscreen copy, falling back to local write', err);
+    console.warn(
+      '[yt-llm clipboard] could not reach background for offscreen copy, falling back to local write',
+      err?.name,
+      err?.message
+    );
   }
 
   try {
     await navigator.clipboard.writeText(text);
     return true;
   } catch (err) {
-    console.warn('[yt-llm clipboard] navigator.clipboard.writeText failed, falling back to execCommand', err);
+    console.warn(
+      '[yt-llm clipboard] navigator.clipboard.writeText failed, falling back to execCommand',
+      err?.name,
+      err?.message
+    );
   }
 
   const textarea = document.createElement('textarea');
