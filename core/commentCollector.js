@@ -10,13 +10,37 @@ function getCommentsRoot() {
   return document.querySelector('ytd-comments#comments');
 }
 
-function readVisibleCommentTexts() {
+// The sort trigger/menu text is in whatever language YouTube's UI is set to,
+// so matching by label would need a translation table. YouTube always lists
+// "Top comments" first regardless of locale, so we open the dropdown and
+// click the first option instead of matching text — locale-independent.
+async function ensureTopCommentsSort() {
+  const trigger =
+    document.querySelector('ytd-comments-header-renderer #sort-menu yt-dropdown-menu #label') ||
+    document.querySelector('ytd-comments-header-renderer #sort-menu');
+  if (!trigger) return;
+
+  trigger.click();
+  await sleep(300);
+
+  const firstOption = document.querySelector(
+    'ytd-menu-service-item-renderer, tp-yt-paper-listbox ytd-menu-navigation-item-renderer'
+  );
+  firstOption?.click();
+  await sleep(300);
+}
+
+function readVisibleComments() {
   // #content-text only exists on rendered (i.e. loaded) comments. Replies are
   // rendered only after their "View replies" button is clicked, so when
   // includeReplies is false we simply never click those buttons and this
   // selector naturally returns top-level comments only.
-  return Array.from(document.querySelectorAll('ytd-comments #content-text')).map(
-    (node) => node.textContent || ''
+  return Array.from(document.querySelectorAll('ytd-comments ytd-comment-view-model, ytd-comments ytd-comment-renderer')).map(
+    (container) => {
+      const text = container.querySelector('#content-text')?.textContent || '';
+      const likesText = container.querySelector('#vote-count-middle')?.textContent?.trim() || '';
+      return { text, likes: likesText || '0' };
+    }
   );
 }
 
@@ -44,13 +68,14 @@ async function collectComments(settings, { onProgress } = {}) {
 
   commentsRoot.scrollIntoView({ behavior: 'instant', block: 'start' });
   await sleep(600);
+  await ensureTopCommentsSort();
 
   const MAX_ITERATIONS = 60;
   const MAX_NO_GROWTH_ROUNDS = 5;
 
   let previousRawCount = -1;
   let noGrowthRounds = 0;
-  let rawTexts = [];
+  let rawComments = [];
 
   for (let i = 0; i < MAX_ITERATIONS; i += 1) {
     window.scrollBy(0, 1400);
@@ -61,24 +86,24 @@ async function collectComments(settings, { onProgress } = {}) {
       await sleep(300);
     }
 
-    rawTexts = readVisibleCommentTexts();
-    const filteredSoFar = filterComments(rawTexts, settings);
+    rawComments = readVisibleComments();
+    const filteredSoFar = filterComments(rawComments, settings);
     const totalChars = filteredSoFar.reduce((sum, c) => sum + c.length, 0);
 
-    onProgress?.({ raw: rawTexts.length, filtered: filteredSoFar.length });
+    onProgress?.({ raw: rawComments.length, filtered: filteredSoFar.length });
 
     if (filteredSoFar.length >= settings.maxComments || totalChars >= settings.maxTotalChars) {
       break;
     }
 
-    if (rawTexts.length === previousRawCount) {
+    if (rawComments.length === previousRawCount) {
       noGrowthRounds += 1;
       if (noGrowthRounds >= MAX_NO_GROWTH_ROUNDS) break;
     } else {
       noGrowthRounds = 0;
     }
-    previousRawCount = rawTexts.length;
+    previousRawCount = rawComments.length;
   }
 
-  return rawTexts;
+  return rawComments;
 }

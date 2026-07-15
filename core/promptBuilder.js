@@ -14,7 +14,9 @@ function fillPromptTemplate(template, comments, videoInfo) {
 
 function buildPrompt(comments, videoInfo, template) {
   const header = fillPromptTemplate(template || getDefaultPromptTemplate(DEFAULT_UI_LANGUAGE), comments, videoInfo).trim();
-  const body = comments.map((comment, index) => `[${index + 1}] ${comment}`).join('\n');
+  const body = comments
+    .map((comment, index) => `[${index + 1}] (👍 ${comment.likes}, ${comment.length} chars) ${comment.text}`)
+    .join('\n');
 
   return `${header}\n\n${body}`;
 }

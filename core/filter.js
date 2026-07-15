@@ -21,13 +21,16 @@ function isLinkOnly(text) {
 }
 
 // Applies minChars/minWords/emoji/link/empty checks and dedupes.
-// Returns filtered + trimmed-to-limits array of comment strings, longest first if preferLonger.
+// `rawComments` is an array of { text, likes } (likes is YouTube's own
+// formatted string, e.g. "1.2K", kept as-is to avoid locale-specific parsing).
+// Returns filtered + trimmed-to-limits array of { text, likes, length },
+// longest first if preferLonger.
 function filterComments(rawComments, settings, { preferLonger = true } = {}) {
   const seen = new Set();
   const candidates = [];
 
   for (const raw of rawComments) {
-    const text = (raw || '').trim().replace(/\s+/g, ' ');
+    const text = (raw?.text || '').trim().replace(/\s+/g, ' ');
     if (!text) continue;
     if (isEmojiOnly(text)) continue;
     if (isLinkOnly(text)) continue;
@@ -42,7 +45,7 @@ function filterComments(rawComments, settings, { preferLonger = true } = {}) {
     if (seen.has(dedupeKey)) continue;
     seen.add(dedupeKey);
 
-    candidates.push(withoutUrls);
+    candidates.push({ text: withoutUrls, likes: raw?.likes || '0', length: withoutUrls.length });
   }
 
   if (preferLonger) {

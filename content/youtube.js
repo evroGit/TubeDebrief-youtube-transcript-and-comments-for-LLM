@@ -93,14 +93,14 @@ async function onCopyClick() {
     const lang = settings.uiLanguage;
     setStatus(t(lang, 'statusCollecting'), false);
 
-    const rawTexts = await collectComments(settings, {
+    const rawComments = await collectComments(settings, {
       onProgress: ({ raw, filtered }) => {
         setStatus(t(lang, 'statusCollectingProgress', raw, filtered), false);
         chrome.runtime.sendMessage({ type: 'progress-update', status: 'collecting', filtered });
       },
     });
 
-    const filtered = filterComments(rawTexts, settings);
+    const filtered = filterComments(rawComments, settings);
     if (filtered.length === 0) {
       const message = t(lang, 'statusNoComments');
       setStatus(message, true);
