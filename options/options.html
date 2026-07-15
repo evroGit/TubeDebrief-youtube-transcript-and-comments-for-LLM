@@ -72,54 +72,66 @@
   </style>
 </head>
 <body>
-  <h1>Copy for LLM — настройки</h1>
+  <h1 data-i18n="optionsTitle">Copy for LLM — настройки</h1>
 
   <label>
-    <span>Min length (символов)</span>
+    <span data-i18n="labelLanguage">Язык интерфейса и prompt</span>
+    <select id="uiLanguage">
+      <option value="ru">Русский</option>
+      <option value="en">English</option>
+      <option value="de">Deutsch</option>
+    </select>
+  </label>
+
+  <hr style="border:none;border-top:1px solid #eee;margin:18px 0;" />
+
+  <label>
+    <span data-i18n="labelMinChars">Min length (символов)</span>
     <input type="number" id="minChars" min="0" />
   </label>
 
   <label>
-    <span>Min words</span>
+    <span data-i18n="labelMinWords">Min words</span>
     <input type="number" id="minWords" min="0" />
   </label>
 
   <label>
-    <span>Max comments</span>
+    <span data-i18n="labelMaxComments">Max comments</span>
     <input type="number" id="maxComments" min="1" />
   </label>
 
   <label>
-    <span>Max total characters</span>
+    <span data-i18n="labelMaxTotalChars">Max total characters</span>
     <input type="number" id="maxTotalChars" min="1000" />
   </label>
 
   <div class="row">
     <input type="checkbox" id="includeReplies" />
-    <label for="includeReplies" style="margin:0;">Include replies</label>
+    <label for="includeReplies" style="margin:0;" data-i18n="labelIncludeReplies">Include replies</label>
   </div>
 
   <label>
-    <span>Custom URL (для кнопки "Open Custom")</span>
+    <span data-i18n="labelCustomUrl">Custom URL (для кнопки "Open Custom")</span>
     <input type="text" id="customLLMUrl" placeholder="https://..." />
   </label>
 
   <label>
-    <span>Prompt для LLM</span>
+    <span data-i18n="labelPromptTemplate">Prompt для LLM</span>
     <textarea id="promptTemplate" spellcheck="false"></textarea>
-    <div class="hint">
+    <div class="hint" data-i18n="hintPromptTemplate">
       Плейсхолдеры: <code>{{videoTitle}}</code>, <code>{{videoUrl}}</code>, <code>{{count}}</code>.
       Список комментариев <code>[1] ... [2] ...</code> добавляется автоматически после этого текста.
     </div>
   </label>
 
-  <button id="reset-prompt" class="secondary" type="button">Восстановить prompt по умолчанию</button>
+  <button id="reset-prompt" class="secondary" type="button" data-i18n="buttonResetPrompt">Восстановить prompt по умолчанию</button>
 
   <hr style="border:none;border-top:1px solid #eee;margin:18px 0;" />
 
-  <button id="save">Сохранить</button>
+  <button id="save" data-i18n="buttonSave">Сохранить</button>
   <span id="saved"></span>
 
+  <script src="../core/i18n.js"></script>
   <script src="../core/storage.js"></script>
   <script src="options.js"></script>
 </body>

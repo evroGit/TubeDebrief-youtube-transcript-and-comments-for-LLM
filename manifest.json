@@ -24,6 +24,7 @@
     {
       "matches": ["https://www.youtube.com/watch*"],
       "js": [
+        "core/i18n.js",
         "core/storage.js",
         "core/filter.js",
         "core/targets.js",

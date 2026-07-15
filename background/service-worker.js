@@ -1,15 +1,38 @@
 // Minimal background worker:
 // - opens the chosen LLM site in a new tab on request;
-// - reflects collection progress on the extension icon badge, so readiness
-//   is visible even when the popup is closed.
+// - reflects collection progress on the extension icon (status) and badge
+//   (comment count), so readiness is visible even when the popup is closed.
 
-const BADGE_COLLECTING = '#065fd4';
-const BADGE_DONE = '#2e7d32';
-const BADGE_ERROR = '#c62828';
+const DEFAULT_ICONS = {
+  16: 'icons/icon16.png',
+  48: 'icons/icon48.png',
+  128: 'icons/icon128.png',
+};
 
-function setBadge(tabId, text, color) {
+const STATUS_ICONS = {
+  collecting: {
+    16: 'icons/status/icon16-collecting.png',
+    48: 'icons/status/icon48-collecting.png',
+    128: 'icons/status/icon128-collecting.png',
+  },
+  done: {
+    16: 'icons/status/icon16-done.png',
+    48: 'icons/status/icon48-done.png',
+    128: 'icons/status/icon128-done.png',
+  },
+  error: {
+    16: 'icons/status/icon16-error.png',
+    48: 'icons/status/icon48-error.png',
+    128: 'icons/status/icon128-error.png',
+  },
+};
+
+function setStatusIcon(tabId, status) {
+  chrome.action.setIcon({ tabId, path: STATUS_ICONS[status] || DEFAULT_ICONS });
+}
+
+function setBadge(tabId, text) {
   chrome.action.setBadgeText({ tabId, text });
-  if (color) chrome.action.setBadgeBackgroundColor({ tabId, color });
 }
 
 function sleep(ms) {
@@ -103,13 +126,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (tabId == null) return true;
 
     if (message.status === 'collecting') {
-      setBadge(tabId, String(message.filtered ?? 0), BADGE_COLLECTING);
+      setStatusIcon(tabId, 'collecting');
+      setBadge(tabId, String(message.filtered ?? 0));
     } else if (message.status === 'done') {
-      setBadge(tabId, '✓', BADGE_DONE);
+      setStatusIcon(tabId, 'done');
+      setBadge(tabId, '');
     } else if (message.status === 'error') {
-      setBadge(tabId, '!', BADGE_ERROR);
+      setStatusIcon(tabId, 'error');
+      setBadge(tabId, '!');
     } else if (message.status === 'clear') {
-      setBadge(tabId, '', null);
+      setStatusIcon(tabId, 'clear');
+      setBadge(tabId, '');
     }
     sendResponse?.({ ok: true });
     return true;

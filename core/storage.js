@@ -1,26 +1,5 @@
-// Settings persistence via chrome.storage.local
-
-// Placeholders {{videoTitle}}, {{videoUrl}}, {{count}} are substituted by
-// core/promptBuilder.js; the numbered comment list is appended after this.
-const DEFAULT_PROMPT_TEMPLATE = `Ты анализируешь комментарии под YouTube-видео.
-{{videoTitle}}
-{{videoUrl}}
-
-Выдели среди комментариев:
-- содержательные комментарии по теме видео;
-- личный опыт и личные истории авторов;
-- тематические наблюдения и мнения по существу.
-
-Отбрось при анализе:
-- короткие и бессодержательные реплики;
-- generic-похвалу без содержания ("круто", "супер видео" и т.п.);
-- оффтоп, не относящийся к теме видео.
-
-В ответе верни:
-1. Общий summary обсуждения в комментариях.
-2. Лучшие комментарии (переведи на русский, если нужно) и краткий summary под каждым из комментариев.
-
-Ниже {{count}} комментариев:`;
+// Settings persistence via chrome.storage.local.
+// Requires core/i18n.js to be loaded first (DEFAULT_UI_LANGUAGE, getDefaultPromptTemplate).
 
 const DEFAULT_SETTINGS = {
   minChars: 100,
@@ -29,7 +8,8 @@ const DEFAULT_SETTINGS = {
   maxTotalChars: 60000,
   includeReplies: true,
   customLLMUrl: '',
-  promptTemplate: DEFAULT_PROMPT_TEMPLATE,
+  uiLanguage: DEFAULT_UI_LANGUAGE,
+  promptTemplate: getDefaultPromptTemplate(DEFAULT_UI_LANGUAGE),
 };
 
 async function getSettings() {

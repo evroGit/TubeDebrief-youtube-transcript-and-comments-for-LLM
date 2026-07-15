@@ -8,6 +8,8 @@ const COPY_BUTTON_ID = 'yt-llm-copy-button';
 const STATUS_ID = 'yt-llm-copy-status';
 const OPEN_TARGETS = ['chatgpt', 'claude', 'gemini', 'perplexity', 'custom'];
 
+let mounting = false;
+
 function getVideoInfo() {
   const titleNode = document.querySelector('h1.ytd-watch-metadata yt-formatted-string, #title h1');
   return {
@@ -38,14 +40,17 @@ function openButtonStyle() {
   ].join(';');
 }
 
-function createWrapper() {
+// Labels are baked in at mount time from the language saved at that moment;
+// if the user changes the language later, a YouTube tab already open needs a
+// reload to pick it up (documented limitation, not worth a live-sync layer).
+function createWrapper(lang) {
   const wrapper = document.createElement('span');
   wrapper.id = WRAPPER_ID;
   wrapper.style.cssText = 'display:inline-flex;align-items:center;flex-wrap:wrap;';
 
   const copyButton = document.createElement('button');
   copyButton.id = COPY_BUTTON_ID;
-  copyButton.textContent = 'Copy';
+  copyButton.textContent = t(lang, 'buttonCopy');
   copyButton.style.cssText = [
     'margin-left:8px',
     'padding:0 16px',
@@ -64,7 +69,7 @@ function createWrapper() {
   for (const targetKey of OPEN_TARGETS) {
     const label = targetKey === 'custom' ? 'Custom' : LLM_TARGETS[targetKey].label;
     const openButton = document.createElement('button');
-    openButton.textContent = `Open ${label}`;
+    openButton.textContent = `${t(lang, 'buttonOpenPrefix')} ${label}`;
     openButton.style.cssText = openButtonStyle();
     openButton.addEventListener('click', () => onOpenClick(targetKey));
     wrapper.appendChild(openButton);
@@ -81,22 +86,23 @@ function createWrapper() {
 async function onCopyClick() {
   const button = document.getElementById(COPY_BUTTON_ID);
   button.disabled = true;
-  setStatus('Собираю комментарии…', false);
   chrome.runtime.sendMessage({ type: 'progress-update', status: 'collecting', filtered: 0 });
 
   try {
     const settings = await getSettings();
+    const lang = settings.uiLanguage;
+    setStatus(t(lang, 'statusCollecting'), false);
 
     const rawTexts = await collectComments(settings, {
       onProgress: ({ raw, filtered }) => {
-        setStatus(`Собрано ${raw} (подходит ${filtered})…`, false);
+        setStatus(t(lang, 'statusCollectingProgress', raw, filtered), false);
         chrome.runtime.sendMessage({ type: 'progress-update', status: 'collecting', filtered });
       },
     });
 
     const filtered = filterComments(rawTexts, settings);
     if (filtered.length === 0) {
-      const message = 'Подходящих комментариев не найдено';
+      const message = t(lang, 'statusNoComments');
       setStatus(message, true);
       await saveLastError(message);
       chrome.runtime.sendMessage({ type: 'progress-update', status: 'error' });
@@ -106,7 +112,7 @@ async function onCopyClick() {
     const prompt = buildPrompt(filtered, getVideoInfo(), settings.promptTemplate);
     const copied = await copyTextToClipboard(prompt);
     if (!copied) {
-      const message = 'Не удалось скопировать в буфер обмена';
+      const message = t(lang, 'statusCopyFailed');
       setStatus(message, true);
       await saveLastError(message);
       chrome.runtime.sendMessage({ type: 'progress-update', status: 'error' });
@@ -116,12 +122,13 @@ async function onCopyClick() {
     await saveLastPrompt(prompt);
     await clearLastError();
 
-    setStatus(`Готово: ${filtered.length} комментариев скопировано. Выберите LLM →`, false);
+    setStatus(t(lang, 'statusDone', filtered.length), false);
     chrome.runtime.sendMessage({ type: 'progress-update', status: 'done', filtered: filtered.length });
     return { ok: true, count: filtered.length };
   } catch (err) {
     console.error('[yt-llm] collect failed', err);
-    const message = err?.message || 'Ошибка сбора комментариев';
+    const settings = await getSettings();
+    const message = err?.message || t(settings.uiLanguage, 'statusErrorGeneric');
     setStatus(message, true);
     await saveLastError(message);
     chrome.runtime.sendMessage({ type: 'progress-update', status: 'error' });
@@ -133,28 +140,36 @@ async function onCopyClick() {
 
 async function onOpenClick(targetKey) {
   const settings = await getSettings();
+  const lang = settings.uiLanguage;
   const result = await openLLMTarget(targetKey, settings.customLLMUrl);
 
   if (!result.ok && result.reason === 'no-text') {
-    const message = 'Сначала нажмите Copy';
+    const message = t(lang, 'statusFirstCopy');
     setStatus(message, true);
     await saveLastError(message);
   } else if (!result.ok && result.reason === 'no-url') {
-    const message = 'Задайте Custom URL в настройках расширения';
+    const message = t(lang, 'statusSetCustomUrl');
     setStatus(message, true);
     await saveLastError(message);
   }
 }
 
-function mountButton() {
-  if (document.getElementById(WRAPPER_ID)) return;
+async function mountButton() {
+  if (document.getElementById(WRAPPER_ID) || mounting) return;
 
   const anchor =
     document.querySelector('#top-level-buttons-computed') ||
     document.querySelector('ytd-menu-renderer#menu');
   if (!anchor) return;
 
-  anchor.appendChild(createWrapper());
+  mounting = true;
+  try {
+    const settings = await getSettings();
+    if (document.getElementById(WRAPPER_ID)) return;
+    anchor.appendChild(createWrapper(settings.uiLanguage));
+  } finally {
+    mounting = false;
+  }
 }
 
 // YouTube is a SPA; watch pages load without a full page reload, so poll for

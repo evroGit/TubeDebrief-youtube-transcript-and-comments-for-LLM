@@ -101,32 +101,32 @@
   </style>
 </head>
 <body>
-  <h1>Copy for LLM</h1>
+  <h1 data-i18n="popupTitle">Copy for LLM</h1>
 
   <label>
-    <span>Min length (символов)</span>
+    <span data-i18n="labelMinChars">Min length (символов)</span>
     <input type="number" id="minChars" min="0" />
   </label>
 
   <label>
-    <span>Max comments</span>
+    <span data-i18n="labelMaxComments">Max comments</span>
     <input type="number" id="maxComments" min="1" />
   </label>
 
   <div class="row">
     <input type="checkbox" id="includeReplies" />
-    <label for="includeReplies" style="margin:0;">Include replies</label>
+    <label for="includeReplies" style="margin:0;" data-i18n="labelIncludeReplies">Include replies</label>
   </div>
 
-  <button id="copy-button">Copy</button>
+  <button id="copy-button" data-i18n="buttonCopy">Copy</button>
 
   <hr />
 
   <div class="open-targets">
-    <button data-target="chatgpt">Open ChatGPT</button>
-    <button data-target="claude">Open Claude</button>
-    <button data-target="gemini">Open Gemini</button>
-    <button data-target="perplexity">Open Perplexity</button>
+    <button data-target="chatgpt">ChatGPT</button>
+    <button data-target="claude">Claude</button>
+    <button data-target="gemini">Gemini</button>
+    <button data-target="perplexity">Perplexity</button>
   </div>
 
   <div id="open-custom-row">
@@ -136,8 +136,9 @@
 
   <div id="status"></div>
 
-  <a href="#" id="options-link">Больше настроек</a>
+  <a href="#" id="options-link" data-i18n="linkMoreSettings">Больше настроек</a>
 
+  <script src="../core/i18n.js"></script>
   <script src="../core/storage.js"></script>
   <script src="../core/targets.js"></script>
   <script src="../core/openTarget.js"></script>
