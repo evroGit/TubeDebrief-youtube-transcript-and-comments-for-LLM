@@ -1,79 +1,84 @@
 # Copy YouTube Comments for LLM
 
-Chrome extension: собирает комментарии под текущим YouTube-видео, фильтрует их локальной эвристикой, формирует один большой prompt и копирует его в буфер обмена — вставить в ChatGPT/Claude/Gemini/Perplexity пользователь должен сам (либо это делает experimental auto-paste).
+*[Читать на русском](README.ru.md)*
 
-Никаких батчей, никакой интеграции с LLM API, никакого обязательного side panel — максимум простоты.
+Chrome extension: collects the comments under the current YouTube video, filters them with a local heuristic, builds one big prompt, and copies it to the clipboard — pasting it into ChatGPT/Claude/Gemini/Perplexity is up to the user (or handled by the experimental auto-paste).
 
-## Как это работает
+No batching, no LLM API integration, no mandatory side panel — maximum simplicity.
 
-1. Открываете видео на `youtube.com/watch...`.
-2. Нажимаете **"Copy"** — либо кнопку прямо на странице (рядом с лайком/дизлайком), либо в popup расширения.
-3. Расширение переключает сортировку комментариев на "Top comments" (если ещё не выбрана), затем скроллит страницу, подгружая комментарии (и, если включено, разворачивает replies), пока не наберёт нужное количество / объём символов.
-4. Локальный фильтр отсеивает пустые, emoji-only, ссылки-без-текста и дубликаты, оставляет комментарии не короче `minChars`/`minWords`.
-5. Формируется один текст: инструкция для LLM + пронумерованный список комментариев вида `[1] (👍 245, 87 chars) текст...`, и сохраняется (`chrome.storage.local`) как "последний скопированный текст".
-6. Текст копируется в буфер обмена.
-7. Дальше **отдельно**, сколько угодно раз, нажимаете любую из кнопок **"Open ChatGPT" / "Open Claude" / "Open Gemini" / "Open Perplexity" / "Open Custom"** — каждая открывает новую вкладку с этим сайтом и пытается автоматически вставить туда сохранённый текст. Сбор комментариев при этом не повторяется — можно открыть хоть все пять LLM подряд из одного Copy.
-8. Если авто-вставка не сработала — вставляете вручную (Ctrl+V), текст уже в буфере обмена.
+## How it works
 
-## Источник комментариев: DOM scraping
+1. Open a video at `youtube.com/watch...`.
+2. Click **"Copy"** — either the button on the page itself (next to like/dislike), or the one in the extension's popup.
+3. The extension switches the comment sort to "Top comments" (if not already selected), then scrolls the page, loading comments (and expanding replies, if enabled), until it collects enough comments / characters.
+4. A local filter drops empty, emoji-only, link-only, and duplicate comments, keeping only those at least `minChars`/`minWords` long.
+5. A single text is assembled: instructions for the LLM + a numbered comment list like `[1] (👍 245, 87 chars) text...`, and saved (`chrome.storage.local`) as the "last copied text".
+6. The text is copied to the clipboard.
+7. **Separately**, as many times as you like, click any of **"Open ChatGPT" / "Open Claude" / "Open Gemini" / "Open Perplexity" / "Open Custom"** — each opens a new tab with that site and tries to auto-paste the saved text into it. Comment collection isn't repeated — you can open all five LLMs in a row from a single Copy.
+8. If auto-paste didn't work, paste manually (Ctrl+V) — the text is already in the clipboard.
 
-Выбран DOM scraping страницы YouTube (не YouTube Data API), потому что:
+Open buttons stay disabled (and Copy shows no checkmark) until a prompt has actually been collected for the video currently on screen — navigating to a different video without pressing Copy again re-disables them, so an Open click can never send a different video's stale prompt.
 
-- не нужен API key, OAuth или квоты;
-- работает сразу после установки, без единой настройки;
-- MVP не требует 100% полноты комментариев — только доступные без лишних действий пользователя.
+## Comment source: DOM scraping
 
-Скролл прогружает ленту комментариев порциями; если включена опция **Include replies**, расширение дополнительно кликает по кнопкам "Показать ответы" перед сбором текста. Если опция выключена, ответы просто не разворачиваются и не попадают в выборку — дополнительная фильтрация не нужна.
+DOM scraping of the YouTube page was chosen over the YouTube Data API because:
 
-## Настройки (chrome.storage.local)
+- no API key, OAuth, or quota needed;
+- works right after install, with zero setup;
+- the MVP doesn't need 100% comment completeness — only what's reachable without extra user actions.
 
-| Настройка | Где менять | Описание |
+Scrolling loads the comment feed in batches; if **Include replies** is enabled, the extension also clicks the "Show replies" buttons before collecting text. If the option is disabled, replies simply never get expanded and never enter the pool — no extra filtering needed.
+
+## Settings (chrome.storage.local)
+
+| Setting | Where to change | Description |
 |---|---|---|
-| `minChars` | popup / options | минимальная длина комментария в символах |
-| `minWords` | options | минимальное число слов |
-| `maxComments` | popup / options | максимум отобранных комментариев |
-| `maxTotalChars` | options | максимальный суммарный объём текста комментариев |
-| `includeReplies` | popup / options | собирать ли ответы на комментарии |
-| `customLLMUrl` | popup / options | URL для кнопки "Open Custom" |
-| `uiLanguage` | options | язык интерфейса (popup, options, кнопки/статусы на странице YouTube) и язык prompt: `ru` / `en` / `de` |
-| `promptTemplate` | options | редактируемый текст инструкции для LLM (плейсхолдеры `{{videoTitle}}`, `{{videoUrl}}`, `{{count}}`); список комментариев добавляется после него автоматически. При смене языка автоматически переключается на дефолтный шаблон **этого** языка, только если prompt ещё не был кастомизирован — иначе кастомный текст не трогается |
-| `lastPromptText` | внутреннее | последний собранный текст, используется всеми кнопками Open |
+| `minChars` | popup / options | minimum comment length in characters |
+| `minWords` | options | minimum word count |
+| `maxComments` | popup / options | maximum number of selected comments |
+| `maxTotalChars` | options | maximum total character volume of comments |
+| `includeReplies` | popup / options | whether to collect replies to comments |
+| `customLLMUrl` | popup / options | URL for the "Open Custom" button |
+| `uiLanguage` | options | interface language (popup, options, buttons/statuses on the YouTube page) and prompt language: `ru` / `en` / `de` |
+| `promptTemplate` | options | editable instruction text for the LLM (placeholders `{{videoTitle}}`, `{{videoUrl}}`, `{{count}}`); the comment list is appended after it automatically. Switching language auto-switches to that language's default template only if the prompt hasn't been customized yet — otherwise custom text is left untouched |
+| `lastPromptText` | internal | the last collected text, used by all Open buttons |
+| `lastPromptVideoId` | internal | the video id the last collected text belongs to, used to gate the Open buttons |
 
-## Архитектура
+## Architecture
 
 ```
 manifest.json
-background/service-worker.js   — открывает вкладку с LLM, дожидается её загрузки, шлёт туда текст для авто-вставки; badge с прогрессом
-content/youtube.js             — инжектит кнопки Copy + Open×5, оркестрирует collect → filter → build → copy
-content/autopaste.js           — experimental: вставляет текст в поле ввода ChatGPT/Claude/Gemini/Perplexity
-popup/popup.html, popup.js     — настройки + кнопка Copy + кнопки Open для каждого LLM
-options/options.html, options.js — полный набор настроек
-core/commentCollector.js       — скролл страницы, раскрытие replies, сбор сырых текстов
-core/filter.js                 — локальный эвристический фильтр + дедупликация + лимиты
-core/promptBuilder.js          — сборка финального текста для LLM
-core/i18n.js                   — словарь UI-строк и prompt-шаблонов на ru/en/de, функция t(lang, key)
-core/clipboard.js              — запись в буфер обмена через offscreen-документ (fallback: navigator.clipboard / execCommand)
-offscreen/offscreen.html, offscreen.js — offscreen-документ: пишет в буфер обмена без требования фокуса вкладки / user gesture (см. manifest permission "clipboardWrite")
-core/targets.js                — предустановленные URL LLM-чатов
-core/storage.js                — обёртка над chrome.storage.local с дефолтами + хранение последнего текста
-core/openTarget.js             — общий "открыть LLM с последним текстом", используется и popup, и content script
+background/service-worker.js   — opens the LLM tab, waits for it to load, sends it the text for auto-paste; status icon + comment-count badge
+content/youtube.js             — injects Copy + Open×5 buttons, orchestrates collect → filter → build → copy
+content/autopaste.js           — experimental: pastes text into the ChatGPT/Claude/Gemini/Perplexity input field
+popup/popup.html, popup.js     — settings + Copy button + Open buttons for each LLM
+options/options.html, options.js — full settings set
+core/commentCollector.js       — scrolls the page, expands replies, collects raw text
+core/filter.js                 — local heuristic filter + deduplication + limits
+core/promptBuilder.js          — assembles the final text for the LLM
+core/i18n.js                   — UI string and prompt template dictionary for ru/en/de, t(lang, key) function
+core/clipboard.js              — writes to the clipboard via the offscreen document (fallback: navigator.clipboard / execCommand)
+offscreen/offscreen.html, offscreen.js — offscreen document: writes to the clipboard without requiring tab focus / a user gesture (see the "clipboardWrite" manifest permission)
+core/targets.js                — preset LLM chat URLs
+core/storage.js                — wrapper over chrome.storage.local with defaults + last-text/video storage
+core/openTarget.js             — shared "open an LLM with the last text" action, used by both the popup and the content script
 ```
 
-Модули `core/*` подключены как обычные classic scripts (без сборки/бандлера — соответствует принципу максимальной простоты) и делят общую глобальную область видимости в контенте, куда они внедряются (content script и popup/options).
+`core/*` modules are loaded as plain classic scripts (no build/bundler — matches the "maximum simplicity" principle) and share a global scope within whichever context they're injected into (content script, or popup/options).
 
-## Установка как unpacked extension
+## Installing as an unpacked extension
 
-1. Откройте `chrome://extensions`.
-2. Включите **Developer mode** (переключатель в правом верхнем углу).
-3. Нажмите **Load unpacked**.
-4. Выберите папку с этим расширением (там, где лежит `manifest.json`).
-5. Откройте любое видео на YouTube — рядом с кнопками лайка появятся **"Copy"** и кнопки **"Open ..."**, либо откройте popup расширения через иконку в панели инструментов.
+1. Open `chrome://extensions`.
+2. Enable **Developer mode** (toggle in the top-right corner).
+3. Click **Load unpacked**.
+4. Select the folder containing this extension (where `manifest.json` lives).
+5. Open any YouTube video — **"Copy"** and the **"Open ..."** buttons will appear next to the like button, or open the extension's popup via its toolbar icon.
 
-**После любого изменения `manifest.json`** (например, добавления нового домена в `host_permissions`) нужно нажать **Reload** для расширения на `chrome://extensions` — иначе новые домены/content scripts не подхватятся.
+**After any change to `manifest.json`** (e.g. adding a new domain to `host_permissions`), click **Reload** for the extension on `chrome://extensions` — otherwise new domains/content scripts won't be picked up.
 
-## Ограничения MVP
+## MVP limitations
 
-- DOM-селекторы YouTube могут измениться — если кнопка "Copy" перестанет собирать комментарии, вероятно, изменилась структура `ytd-comments` и селекторы в `core/commentCollector.js` нужно обновить.
-- Сбор не гарантирует 100% всех комментариев под видео — только те, что удалось прогрузить скроллом за разумное число итераций.
-- Автоматическая вставка текста в чат LLM не является core-гарантией — реализована как **experimental bonus** (`content/autopaste.js`) для ChatGPT/Claude/Gemini/Perplexity: после открытия вкладки и её полной загрузки расширение пытается найти поле ввода и вставить туда текст. Если селекторы сайта изменятся и вставка не сработает — это не считается ошибкой пайплайна: текст уже лежит в буфере обмена, и его можно вставить вручную (Ctrl+V). Для Custom URL авто-вставка не выполняется — только копирование и открытие вкладки.
-- Язык кнопок на странице YouTube фиксируется в момент их создания (при загрузке/навигации на видео). Если сменить язык в options, пока вкладка YouTube уже открыта, кнопки на странице обновятся только после перезагрузки этой вкладки — popup обновляется сразу при каждом открытии.
+- YouTube's DOM selectors may change — if the "Copy" button stops collecting comments, the `ytd-comments` structure has likely changed and the selectors in `core/commentCollector.js` need updating.
+- Collection doesn't guarantee 100% of a video's comments — only what scrolling manages to load within a reasonable number of iterations.
+- Auto-pasting text into the LLM chat isn't a core guarantee — it's implemented as an **experimental bonus** (`content/autopaste.js`) for ChatGPT/Claude/Gemini/Perplexity: after the tab opens and finishes loading, the extension tries to find the input field and paste the text into it. If the site's selectors change and pasting fails, that's not considered a pipeline error — the text is already in the clipboard and can be pasted manually (Ctrl+V). For Custom URL, no auto-paste is attempted — only copy and tab-open.
+- The language of the buttons on the YouTube page is fixed at the moment they're created (on load/navigation to a video). If you change the language in options while a YouTube tab is already open, the page's buttons only update after that tab is reloaded — the popup updates immediately every time it's opened.
