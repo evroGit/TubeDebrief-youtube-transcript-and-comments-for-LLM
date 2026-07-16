@@ -6,6 +6,7 @@ const copyButton = document.getElementById('copy-button');
 const openCustomButton = document.getElementById('open-custom-button');
 const statusEl = document.getElementById('status');
 const optionsLink = document.getElementById('options-link');
+const copyCheck = document.getElementById('copy-check');
 
 let currentLang = DEFAULT_UI_LANGUAGE;
 
@@ -33,6 +34,21 @@ async function loadForm() {
   includeRepliesInput.checked = settings.includeReplies;
   customUrlInput.value = settings.customLLMUrl;
   applyTranslations(currentLang);
+}
+
+// Open <LLM> only makes sense once a prompt was actually collected for the
+// video on the active tab — otherwise it would silently reuse whatever
+// prompt happens to be stored from a different video.
+function setOpenButtonsEnabled(enabled) {
+  document.querySelectorAll('.open-targets button, #open-custom-button').forEach((button) => {
+    button.disabled = !enabled;
+  });
+  copyCheck.style.display = enabled ? 'inline' : 'none';
+}
+
+async function refreshOpenButtonsState() {
+  const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  setOpenButtonsEnabled(await hasLastPromptForVideo(activeTab?.url));
 }
 
 async function showLastErrorIfAny() {
@@ -81,6 +97,7 @@ copyButton.addEventListener('click', async () => {
     const result = await chrome.tabs.sendMessage(activeTab.id, { type: 'run-copy-for-llm' });
     if (result?.ok) {
       setStatus(t(currentLang, 'statusDonePopup', result.count), false);
+      setOpenButtonsEnabled(true);
     } else {
       setStatus(result?.reason || t(currentLang, 'statusCopyFailed'), true);
     }
@@ -95,13 +112,18 @@ copyButton.addEventListener('click', async () => {
 });
 
 async function handleOpen(targetKey, customUrl) {
-  const result = await openLLMTarget(targetKey, customUrl);
+  const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const result = await openLLMTarget(targetKey, customUrl, activeTab?.url);
   if (!result.ok && result.reason === 'no-text') {
     const message = t(currentLang, 'statusFirstCopy');
     setStatus(message, true);
     await saveLastError(message);
   } else if (!result.ok && result.reason === 'no-url') {
     const message = t(currentLang, 'statusSetCustomUrlPopup');
+    setStatus(message, true);
+    await saveLastError(message);
+  } else if (!result.ok && result.reason === 'stale-video') {
+    const message = t(currentLang, 'statusVideoChanged');
     setStatus(message, true);
     await saveLastError(message);
   } else {
@@ -119,3 +141,4 @@ openCustomButton.addEventListener('click', async () => {
 });
 
 loadForm().then(showLastErrorIfAny);
+refreshOpenButtonsState();

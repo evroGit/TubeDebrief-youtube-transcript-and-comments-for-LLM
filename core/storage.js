@@ -21,15 +21,42 @@ async function saveSettings(partial) {
   await chrome.storage.local.set(partial);
 }
 
+function extractVideoId(url) {
+  try {
+    return new URL(url).searchParams.get('v');
+  } catch {
+    return null;
+  }
+}
+
 // Holds the most recently built prompt so "Open <LLM>" can be clicked
 // multiple times (for different targets) without re-running collection.
-async function saveLastPrompt(text) {
-  await chrome.storage.local.set({ lastPromptText: text, lastPromptSavedAt: Date.now() });
+// The source video is stored alongside it so Open can refuse to reuse a
+// prompt collected for a different video (see openLLMTarget).
+async function saveLastPrompt(text, videoUrl) {
+  await chrome.storage.local.set({
+    lastPromptText: text,
+    lastPromptVideoId: extractVideoId(videoUrl),
+    lastPromptSavedAt: Date.now(),
+  });
 }
 
 async function getLastPrompt() {
   const { lastPromptText } = await chrome.storage.local.get('lastPromptText');
   return lastPromptText || null;
+}
+
+async function getLastPromptVideoId() {
+  const { lastPromptVideoId } = await chrome.storage.local.get('lastPromptVideoId');
+  return lastPromptVideoId || null;
+}
+
+// True only if a prompt was successfully collected for this exact video —
+// drives whether "Open <LLM>" is enabled/disabled in the popup and on-page UI.
+async function hasLastPromptForVideo(videoUrl) {
+  const storedId = await getLastPromptVideoId();
+  const currentId = extractVideoId(videoUrl);
+  return Boolean(storedId && currentId && storedId === currentId);
 }
 
 // Keeps only the single most recent error (no growing log), so the popup can

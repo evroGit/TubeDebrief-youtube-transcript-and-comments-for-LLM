@@ -68,6 +68,16 @@
       border-radius: 6px;
       cursor: pointer;
     }
+    .open-targets button:disabled,
+    #open-custom-button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    #copy-check {
+      display: none;
+      color: #fff;
+      font-weight: 700;
+    }
     #open-custom-row {
       display: flex;
       gap: 6px;
@@ -118,20 +128,20 @@
     <label for="includeReplies" style="margin:0;" data-i18n="labelIncludeReplies">Include replies</label>
   </div>
 
-  <button id="copy-button" data-i18n="buttonCopy">Copy</button>
+  <button id="copy-button"><span data-i18n="buttonCopy">Copy</span><span id="copy-check"> ✓</span></button>
 
   <hr />
 
   <div class="open-targets">
-    <button data-target="chatgpt">ChatGPT</button>
-    <button data-target="claude">Claude</button>
-    <button data-target="gemini">Gemini</button>
-    <button data-target="perplexity">Perplexity</button>
+    <button data-target="chatgpt" disabled>ChatGPT</button>
+    <button data-target="claude" disabled>Claude</button>
+    <button data-target="gemini" disabled>Gemini</button>
+    <button data-target="perplexity" disabled>Perplexity</button>
   </div>
 
   <div id="open-custom-row">
     <input type="text" id="customLLMUrl" placeholder="Custom URL" />
-    <button id="open-custom-button">Open</button>
+    <button id="open-custom-button" disabled>Open</button>
   </div>
 
   <div id="status"></div>

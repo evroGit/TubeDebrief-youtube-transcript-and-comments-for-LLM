@@ -5,8 +5,10 @@
 
 const WRAPPER_ID = 'yt-llm-wrapper';
 const COPY_BUTTON_ID = 'yt-llm-copy-button';
+const COPY_CHECK_ID = 'yt-llm-copy-check';
 const STATUS_ID = 'yt-llm-copy-status';
 const OPEN_TARGETS = ['chatgpt', 'claude', 'gemini', 'perplexity', 'custom'];
+const OPEN_BUTTON_CLASS = 'yt-llm-open-button';
 
 let mounting = false;
 
@@ -50,7 +52,6 @@ function createWrapper(lang) {
 
   const copyButton = document.createElement('button');
   copyButton.id = COPY_BUTTON_ID;
-  copyButton.textContent = t(lang, 'buttonCopy');
   copyButton.style.cssText = [
     'margin-left:8px',
     'padding:0 16px',
@@ -63,14 +64,27 @@ function createWrapper(lang) {
     'font-weight:500',
     'cursor:pointer',
   ].join(';');
+
+  const copyLabel = document.createElement('span');
+  copyLabel.textContent = t(lang, 'buttonCopy');
+  copyButton.appendChild(copyLabel);
+
+  const copyCheck = document.createElement('span');
+  copyCheck.id = COPY_CHECK_ID;
+  copyCheck.textContent = ' ✓';
+  copyCheck.style.cssText = 'display:none;color:#fff;font-weight:700;';
+  copyButton.appendChild(copyCheck);
+
   copyButton.addEventListener('click', onCopyClick);
   wrapper.appendChild(copyButton);
 
   for (const targetKey of OPEN_TARGETS) {
     const label = targetKey === 'custom' ? 'Custom' : LLM_TARGETS[targetKey].label;
     const openButton = document.createElement('button');
+    openButton.classList.add(OPEN_BUTTON_CLASS);
     openButton.textContent = `${t(lang, 'buttonOpenPrefix')} ${label}`;
-    openButton.style.cssText = openButtonStyle();
+    openButton.style.cssText = `${openButtonStyle()};opacity:0.5;cursor:default;`;
+    openButton.disabled = true;
     openButton.addEventListener('click', () => onOpenClick(targetKey));
     wrapper.appendChild(openButton);
   }
@@ -81,6 +95,26 @@ function createWrapper(lang) {
   wrapper.appendChild(status);
 
   return wrapper;
+}
+
+// Reflects whether a prompt has actually been collected for the video
+// currently on screen: enables/disables the Open buttons accordingly and
+// shows/hides the checkmark on Copy. Called on mount, after navigating to a
+// different video, and right after a successful Copy.
+async function refreshButtonState() {
+  const wrapper = document.getElementById(WRAPPER_ID);
+  if (!wrapper) return;
+
+  const matched = await hasLastPromptForVideo(location.href);
+
+  wrapper.querySelectorAll(`.${OPEN_BUTTON_CLASS}`).forEach((button) => {
+    button.disabled = !matched;
+    button.style.opacity = matched ? '1' : '0.5';
+    button.style.cursor = matched ? 'pointer' : 'default';
+  });
+
+  const copyCheck = document.getElementById(COPY_CHECK_ID);
+  if (copyCheck) copyCheck.style.display = matched ? 'inline' : 'none';
 }
 
 async function onCopyClick() {
@@ -119,8 +153,9 @@ async function onCopyClick() {
       return { ok: false, reason: message };
     }
 
-    await saveLastPrompt(prompt);
+    await saveLastPrompt(prompt, getVideoInfo().url);
     await clearLastError();
+    await refreshButtonState();
 
     setStatus(t(lang, 'statusDone', filtered.length), false);
     chrome.runtime.sendMessage({ type: 'progress-update', status: 'done', filtered: filtered.length });
@@ -141,7 +176,7 @@ async function onCopyClick() {
 async function onOpenClick(targetKey) {
   const settings = await getSettings();
   const lang = settings.uiLanguage;
-  const result = await openLLMTarget(targetKey, settings.customLLMUrl);
+  const result = await openLLMTarget(targetKey, settings.customLLMUrl, location.href);
 
   if (!result.ok && result.reason === 'no-text') {
     const message = t(lang, 'statusFirstCopy');
@@ -149,6 +184,10 @@ async function onOpenClick(targetKey) {
     await saveLastError(message);
   } else if (!result.ok && result.reason === 'no-url') {
     const message = t(lang, 'statusSetCustomUrl');
+    setStatus(message, true);
+    await saveLastError(message);
+  } else if (!result.ok && result.reason === 'stale-video') {
+    const message = t(lang, 'statusVideoChanged');
     setStatus(message, true);
     await saveLastError(message);
   }
@@ -167,26 +206,35 @@ async function mountButton() {
     const settings = await getSettings();
     if (document.getElementById(WRAPPER_ID)) return;
     anchor.appendChild(createWrapper(settings.uiLanguage));
+    // Only reached the first time the wrapper is actually created for this
+    // page — cheap, so no need to gate it further.
+    await refreshButtonState();
   } finally {
     mounting = false;
   }
 }
 
 // YouTube is a SPA; watch pages load without a full page reload, so poll for
-// the action-bar anchor and re-mount after in-page navigation.
+// the action-bar anchor and re-mount after in-page navigation. This fires on
+// every DOM mutation, so it stays a plain (cheap, early-returning) mount —
+// no storage reads here.
 const observer = new MutationObserver(() => {
   if (location.pathname === '/watch') mountButton();
 });
 observer.observe(document.documentElement, { childList: true, subtree: true });
 
+// yt-navigate-finish fires once per actual video change (not per DOM
+// mutation), so it's the right place to force a re-check: the wrapper may
+// already exist (YouTube reused the anchor across the navigation), which
+// would make mountButton() a no-op that skips its internal refresh above.
 document.addEventListener('yt-navigate-finish', () => {
   if (location.pathname === '/watch') {
-    mountButton();
+    mountButton().then(refreshButtonState);
     chrome.runtime.sendMessage({ type: 'progress-update', status: 'clear' });
   }
 });
 
-if (location.pathname === '/watch') mountButton();
+if (location.pathname === '/watch') mountButton().then(refreshButtonState);
 
 // Lets the popup's "Copy" button trigger the same pipeline as the in-page
 // button, without duplicating the collection logic.
