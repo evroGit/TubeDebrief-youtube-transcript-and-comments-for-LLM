@@ -79,7 +79,7 @@ function createWrapper(lang) {
   wrapper.appendChild(copyButton);
 
   for (const targetKey of OPEN_TARGETS) {
-    const label = targetKey === 'custom' ? 'Custom' : LLM_TARGETS[targetKey].label;
+    const label = LLM_TARGETS[targetKey].label;
     const openButton = document.createElement('button');
     openButton.classList.add(OPEN_BUTTON_CLASS);
     openButton.textContent = `${t(lang, 'buttonOpenPrefix')} ${label}`;

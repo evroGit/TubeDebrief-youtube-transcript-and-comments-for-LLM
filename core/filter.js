@@ -24,8 +24,9 @@ function isLinkOnly(text) {
 // `rawComments` is an array of { text, likes } (likes is YouTube's own
 // formatted string, e.g. "1.2K", kept as-is to avoid locale-specific parsing).
 // Returns filtered + trimmed-to-limits array of { text, likes, length },
-// longest first if preferLonger.
-function filterComments(rawComments, settings, { preferLonger = true } = {}) {
+// longest first — length is the proxy for substance this filter selects on,
+// so the limits below spend their budget on the most substantial comments.
+function filterComments(rawComments, settings) {
   const seen = new Set();
   const candidates = [];
 
@@ -48,9 +49,7 @@ function filterComments(rawComments, settings, { preferLonger = true } = {}) {
     candidates.push({ text: withoutUrls, likes: raw?.likes || '0', length: withoutUrls.length });
   }
 
-  if (preferLonger) {
-    candidates.sort((a, b) => b.length - a.length);
-  }
+  candidates.sort((a, b) => b.length - a.length);
 
   const result = [];
   let totalChars = 0;

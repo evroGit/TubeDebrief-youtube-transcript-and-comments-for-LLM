@@ -20,7 +20,7 @@ function applyTranslations(lang) {
     el.textContent = t(lang, el.dataset.i18n);
   });
   document.querySelectorAll('.open-targets button').forEach((button) => {
-    button.textContent = `${t(lang, 'buttonOpenPrefix')} ${button.dataset.target === 'custom' ? 'Custom' : LLM_TARGETS[button.dataset.target].label}`;
+    button.textContent = `${t(lang, 'buttonOpenPrefix')} ${LLM_TARGETS[button.dataset.target].label}`;
   });
   openCustomButton.textContent = t(lang, 'buttonOpenPrefix');
   customUrlInput.placeholder = t(lang, 'placeholderCustomUrl');

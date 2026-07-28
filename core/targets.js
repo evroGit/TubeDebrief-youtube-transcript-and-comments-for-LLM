@@ -1,11 +1,13 @@
 // Predefined LLM chat destinations.
 
+// `custom` intentionally carries no url — its destination comes from the
+// customLLMUrl setting at click time, via resolveTargetUrl below.
 const LLM_TARGETS = {
   chatgpt: { label: 'ChatGPT', url: 'https://chat.openai.com/' },
   claude: { label: 'Claude', url: 'https://claude.ai/new' },
   gemini: { label: 'Gemini', url: 'https://gemini.google.com/app' },
   perplexity: { label: 'Perplexity', url: 'https://www.perplexity.ai/' },
-  custom: { label: 'Custom URL', url: '' },
+  custom: { label: 'Custom' },
 };
 
 function resolveTargetUrl(targetKey, customUrl) {

@@ -37,7 +37,6 @@ async function saveLastPrompt(text, videoUrl) {
   await chrome.storage.local.set({
     lastPromptText: text,
     lastPromptVideoId: extractVideoId(videoUrl),
-    lastPromptSavedAt: Date.now(),
   });
 }
 
