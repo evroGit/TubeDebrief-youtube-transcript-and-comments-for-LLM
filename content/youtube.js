@@ -117,6 +117,68 @@ async function refreshButtonState() {
   if (copyCheck) copyCheck.style.display = matched ? 'inline' : 'none';
 }
 
+// Runs the collectors the current contentSource asks for. The transcript is
+// collected first: it opens a side panel, whereas comment collection scrolls
+// the page, and doing it the other way round would fight over scroll position.
+//
+// In 'both' mode a missing transcript is not fatal — a video without captions
+// still has comments worth collecting, so it degrades to comments and reports
+// what was left out. Only the requested-and-nothing-collected case is an error.
+async function collectSources(settings, lang) {
+  const wantTranscript = settings.contentSource !== 'comments';
+  const wantComments = settings.contentSource !== 'transcript';
+
+  let transcript = null;
+  let transcriptUnavailable = false;
+
+  if (wantTranscript) {
+    setStatus(t(lang, 'statusCollectingTranscript'), false);
+    try {
+      transcript = await collectTranscript({
+        onProgress: ({ segments }) => {
+          setStatus(t(lang, 'statusCollectingTranscript'), false);
+          chrome.runtime.sendMessage({ type: 'progress-update', status: 'collecting', filtered: segments });
+        },
+      });
+    } catch (err) {
+      if (err?.message !== TRANSCRIPT_UNAVAILABLE || !wantComments) throw err;
+      transcriptUnavailable = true;
+    }
+  }
+
+  let comments = [];
+  if (wantComments) {
+    setStatus(t(lang, 'statusCollecting'), false);
+    const rawComments = await collectComments(settings, {
+      onProgress: ({ raw, filtered }) => {
+        setStatus(t(lang, 'statusCollectingProgress', raw, filtered), false);
+        chrome.runtime.sendMessage({ type: 'progress-update', status: 'collecting', filtered });
+      },
+    });
+    comments = filterComments(rawComments, settings);
+  }
+
+  return { transcript, comments, transcriptUnavailable };
+}
+
+// Which template to use and what to tell the user, based on what actually came
+// back rather than on what was requested.
+function describeCollected(parts, lang) {
+  const hasTranscript = Boolean(parts.transcript);
+  const hasComments = parts.comments.length > 0;
+
+  if (hasTranscript && hasComments) {
+    return { source: 'both', what: t(lang, 'collectedBoth', parts.comments.length) };
+  }
+  if (hasTranscript) {
+    return { source: 'transcript', what: t(lang, 'collectedTranscript') };
+  }
+  const what = parts.transcriptUnavailable
+    ? `${t(lang, 'collectedComments', parts.comments.length)} (${t(lang, 'noticeTranscriptUnavailable')})`
+    : t(lang, 'collectedComments', parts.comments.length);
+  return { source: 'comments', what };
+}
+
 async function onCopyClick() {
   const button = document.getElementById(COPY_BUTTON_ID);
   button.disabled = true;
@@ -125,25 +187,19 @@ async function onCopyClick() {
   try {
     const settings = await getSettings();
     const lang = settings.uiLanguage;
-    setStatus(t(lang, 'statusCollecting'), false);
 
-    const rawComments = await collectComments(settings, {
-      onProgress: ({ raw, filtered }) => {
-        setStatus(t(lang, 'statusCollectingProgress', raw, filtered), false);
-        chrome.runtime.sendMessage({ type: 'progress-update', status: 'collecting', filtered });
-      },
-    });
+    const parts = await collectSources(settings, lang);
 
-    const filtered = filterComments(rawComments, settings);
-    if (filtered.length === 0) {
-      const message = t(lang, 'statusNoComments');
+    if (!parts.transcript && parts.comments.length === 0) {
+      const message = t(lang, settings.contentSource === 'transcript' ? 'statusNoTranscript' : 'statusNoComments');
       setStatus(message, true);
       await saveLastError(message);
       chrome.runtime.sendMessage({ type: 'progress-update', status: 'error' });
       return { ok: false, reason: message };
     }
 
-    const prompt = buildPrompt(filtered, getVideoInfo(), settings.promptTemplate);
+    const { source, what } = describeCollected(parts, lang);
+    const prompt = buildPrompt(parts, getVideoInfo(), promptTemplateFor(settings, source), settings, lang);
     const copied = await copyTextToClipboard(prompt);
     if (!copied) {
       const message = t(lang, 'statusCopyFailed');
@@ -157,13 +213,18 @@ async function onCopyClick() {
     await clearLastError();
     await refreshButtonState();
 
-    setStatus(t(lang, 'statusDone', filtered.length), false);
-    chrome.runtime.sendMessage({ type: 'progress-update', status: 'done', filtered: filtered.length });
-    return { ok: true, count: filtered.length };
+    setStatus(t(lang, 'statusDone', what), false);
+    chrome.runtime.sendMessage({ type: 'progress-update', status: 'done', filtered: parts.comments.length });
+    return { ok: true, what };
   } catch (err) {
     console.error('[yt-llm] collect failed', err);
     const settings = await getSettings();
-    const message = err?.message || t(settings.uiLanguage, 'statusErrorGeneric');
+    // TRANSCRIPT_UNAVAILABLE is a sentinel, not a sentence — reaching here means
+    // the transcript was the only requested source, so translate it for the user.
+    const message =
+      err?.message === TRANSCRIPT_UNAVAILABLE
+        ? t(settings.uiLanguage, 'statusNoTranscript')
+        : err?.message || t(settings.uiLanguage, 'statusErrorGeneric');
     setStatus(message, true);
     await saveLastError(message);
     chrome.runtime.sendMessage({ type: 'progress-update', status: 'error' });

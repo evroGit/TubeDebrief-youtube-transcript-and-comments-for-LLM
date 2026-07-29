@@ -1,3 +1,4 @@
+const contentSourceInput = document.getElementById('contentSource');
 const minCharsInput = document.getElementById('minChars');
 const maxCommentsInput = document.getElementById('maxComments');
 const includeRepliesInput = document.getElementById('includeReplies');
@@ -26,9 +27,20 @@ function applyTranslations(lang) {
   customUrlInput.placeholder = t(lang, 'placeholderCustomUrl');
 }
 
+// The comment-only filter inputs are pointless while collecting a transcript
+// alone, so they follow the selected source instead of sitting there inert.
+function syncCommentFieldsVisibility() {
+  const relevant = contentSourceInput.value !== 'transcript';
+  document.querySelectorAll('.comment-setting').forEach((el) => {
+    el.style.display = relevant ? '' : 'none';
+  });
+}
+
 async function loadForm() {
   const settings = await getSettings();
   currentLang = settings.uiLanguage;
+  contentSourceInput.value = settings.contentSource;
+  syncCommentFieldsVisibility();
   minCharsInput.value = settings.minChars;
   maxCommentsInput.value = settings.maxComments;
   includeRepliesInput.checked = settings.includeReplies;
@@ -60,6 +72,7 @@ async function showLastErrorIfAny() {
 
 async function persistForm() {
   await saveSettings({
+    contentSource: contentSourceInput.value,
     minChars: Number(minCharsInput.value) || 0,
     maxComments: Number(maxCommentsInput.value) || 1,
     includeReplies: includeRepliesInput.checked,
@@ -67,9 +80,11 @@ async function persistForm() {
   });
 }
 
-[minCharsInput, maxCommentsInput, includeRepliesInput, customUrlInput].forEach((el) => {
+[contentSourceInput, minCharsInput, maxCommentsInput, includeRepliesInput, customUrlInput].forEach((el) => {
   el.addEventListener('change', persistForm);
 });
+
+contentSourceInput.addEventListener('change', syncCommentFieldsVisibility);
 
 optionsLink.addEventListener('click', (e) => {
   e.preventDefault();
@@ -96,7 +111,7 @@ copyButton.addEventListener('click', async () => {
 
     const result = await chrome.tabs.sendMessage(activeTab.id, { type: 'run-copy-for-llm' });
     if (result?.ok) {
-      setStatus(t(currentLang, 'statusDonePopup', result.count), false);
+      setStatus(t(currentLang, 'statusDonePopup', result.what), false);
       setOpenButtonsEnabled(true);
     } else {
       setStatus(result?.reason || t(currentLang, 'statusCopyFailed'), true);

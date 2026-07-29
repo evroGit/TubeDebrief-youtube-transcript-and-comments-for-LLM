@@ -2,24 +2,25 @@
 
 *[Читать на русском](README.ru.md)*
 
-Chrome extension: collects the comments under the current YouTube video, filters them with a local heuristic, builds one big prompt, and copies it to the clipboard — pasting it into ChatGPT/Claude/Gemini/Perplexity is up to the user (or handled by the experimental auto-paste).
+Chrome extension: collects the comments and/or the transcript (captions) of the current YouTube video, builds one big prompt, and copies it to the clipboard — pasting it into ChatGPT/Claude/Gemini/Perplexity is up to the user (or handled by the experimental auto-paste).
 
 No batching, no LLM API integration, no mandatory side panel — maximum simplicity.
 
 ## How it works
 
 1. Open a video at `youtube.com/watch...`.
-2. Click **"Copy"** — either the button on the page itself (next to like/dislike), or the one in the extension's popup.
-3. The extension switches the comment sort to "Top comments" (if not already selected), then scrolls the page, loading comments (and expanding replies, if enabled), until it collects enough comments / characters.
-4. A local filter drops empty, emoji-only, link-only, and duplicate comments, keeping only those at least `minChars`/`minWords` long.
-5. A single text is assembled: instructions for the LLM + a numbered comment list like `[1] (👍 245, 87 chars) text...`, and saved (`chrome.storage.local`) as the "last copied text".
-6. The text is copied to the clipboard.
-7. **Separately**, as many times as you like, click any of **"Open ChatGPT" / "Open Claude" / "Open Gemini" / "Open Perplexity" / "Open Custom"** — each opens a new tab with that site and tries to auto-paste the saved text into it. Comment collection isn't repeated — you can open all five LLMs in a row from a single Copy.
-8. If auto-paste didn't work, paste manually (Ctrl+V) — the text is already in the clipboard.
+2. Pick what to collect in the popup (`What to collect`): **comments**, **transcript**, or **both**. Comments is the default.
+3. Click **"Copy"** — either the button on the page itself (next to like/dislike), or the one in the extension's popup.
+4. If the transcript is wanted: the extension expands the description, opens YouTube's transcript panel, and reads its segments. Segments are grouped into paragraphs — a new `[mm:ss]` paragraph starts at most once every `transcriptTimestampInterval` seconds, so timestamps don't eat the whole prompt.
+5. If comments are wanted: the extension switches the comment sort to "Top comments", then scrolls the page, loading comments (and expanding replies, if enabled), until it collects enough comments / characters. A local filter drops empty, emoji-only, link-only, and duplicate comments, keeping only those at least `minChars`/`minWords` long.
+6. A single text is assembled: instructions for the LLM (a separate template per mode) + the transcript and/or a numbered comment list like `[1] (👍 245, 87 chars) text...`, and saved (`chrome.storage.local`) as the "last copied text". When both sources end up in the prompt they are separated by `=== TRANSCRIPT ===` and `=== COMMENTS (N) ===` headers; with a single source no headers are added.
+7. The text is copied to the clipboard.
+8. **Separately**, as many times as you like, click any of **"Open ChatGPT" / "Open Claude" / "Open Gemini" / "Open Perplexity" / "Open Custom"** — each opens a new tab with that site and tries to auto-paste the saved text into it. Collection isn't repeated — you can open all five LLMs in a row from a single Copy.
+9. If auto-paste didn't work, paste manually (Ctrl+V) — the text is already in the clipboard.
 
 Open buttons stay disabled (and Copy shows no checkmark) until a prompt has actually been collected for the video currently on screen — navigating to a different video without pressing Copy again re-disables them, so an Open click can never send a different video's stale prompt.
 
-## Comment source: DOM scraping
+## Data source: DOM scraping
 
 DOM scraping of the YouTube page was chosen over the YouTube Data API because:
 
@@ -29,10 +30,13 @@ DOM scraping of the YouTube page was chosen over the YouTube Data API because:
 
 Scrolling loads the comment feed in batches; if **Include replies** is enabled, the extension also clicks the "Show replies" buttons before collecting text. If the option is disabled, replies simply never get expanded and never enter the pool — no extra filtering needed.
 
+The transcript is read from the same transcript panel YouTube shows the user behind its "Show transcript" button. The button and the panel are matched by DOM structure rather than by label text — matching text would need a translation table for every YouTube UI language. Only videos with captions (including auto-generated ones) have a transcript; without them the panel never opens, and the transcript mode says plainly that there is nothing to collect.
+
 ## Settings (chrome.storage.local)
 
 | Setting | Where to change | Description |
 |---|---|---|
+| `contentSource` | popup / options | what to collect: `comments` / `transcript` / `both`. Defaults to `comments` — the behaviour from before the transcript source existed |
 | `minChars` | popup / options | minimum comment length in characters |
 | `minWords` | options | minimum word count |
 | `maxComments` | popup / options | maximum number of selected comments |
@@ -40,9 +44,17 @@ Scrolling loads the comment feed in batches; if **Include replies** is enabled, 
 | `includeReplies` | popup / options | whether to collect replies to comments |
 | `customLLMUrl` | popup / options | URL for the "Open Custom" button |
 | `uiLanguage` | options | interface language (popup, options, buttons/statuses on the YouTube page) and prompt language: `ru` / `en` / `de` |
-| `promptTemplate` | options | editable instruction text for the LLM (placeholders `{{videoTitle}}`, `{{videoUrl}}`, `{{count}}`); the comment list is appended after it automatically. Switching language auto-switches to that language's default template only if the prompt hasn't been customized yet — otherwise custom text is left untouched |
+| `transcriptTimestampInterval` | options | a new `[mm:ss]` transcript paragraph starts at most once every N seconds. `0` — no timestamps at all (the whole transcript as one paragraph) |
+| `maxTranscriptChars` | options | character cap for the transcript. Past it the transcript is cut at a paragraph boundary (or, when the whole transcript is one paragraph, at a word boundary) and marked as cut in the text |
+| `promptTemplate` | options | LLM instructions for **comments** mode (placeholders `{{videoTitle}}`, `{{videoUrl}}`, `{{count}}`) |
+| `transcriptPromptTemplate` | options | the same for **transcript** mode: asks for a summary and a topic breakdown with timestamps, and warns the LLM the text may be auto-generated |
+| `combinedPromptTemplate` | options | the same for **both** mode: additionally asks where the comments agree with or contradict the video |
 | `lastPromptText` | internal | the last collected text, used by all Open buttons |
 | `lastPromptVideoId` | internal | the video id the last collected text belongs to, used to gate the Open buttons |
+
+All three prompt templates are editable in options, but only the selected mode's template is visible at a time — the others are saved as they are. On a language switch each template is swapped to that language's default only if it hasn't been customized yet; custom text is left untouched.
+
+In **both** mode a missing transcript is not an error: a video without captions still has comments worth collecting, so the extension collects them, uses the comments template, and appends "transcript unavailable" to the status. Only collecting nothing at all is an error.
 
 ## Architecture
 
@@ -54,6 +66,7 @@ content/autopaste.js           — experimental: pastes text into the ChatGPT/Cl
 popup/popup.html, popup.js     — settings + Copy button + Open buttons for each LLM
 options/options.html, options.js — full settings set
 core/commentCollector.js       — scrolls the page, expands replies, collects raw text
+core/transcriptCollector.js    — opens YouTube's transcript panel and reads its segments (text + timestamp)
 core/filter.js                 — local heuristic filter + deduplication + limits
 core/promptBuilder.js          — assembles the final text for the LLM
 core/i18n.js                   — UI string and prompt template dictionary for ru/en/de, t(lang, key) function
@@ -78,7 +91,10 @@ core/openTarget.js             — shared "open an LLM with the last text" actio
 
 ## MVP limitations
 
-- YouTube's DOM selectors may change — if the "Copy" button stops collecting comments, the `ytd-comments` structure has likely changed and the selectors in `core/commentCollector.js` need updating.
+- YouTube's DOM selectors may change — if the "Copy" button stops collecting comments, the `ytd-comments` structure has likely changed and the selectors in `core/commentCollector.js` need updating. Same for the transcript: the panel selector (`ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-searchable-transcript"]`) and the segment selector (`ytd-transcript-segment-renderer`) live in `core/transcriptCollector.js`.
 - Collection doesn't guarantee 100% of a video's comments — only what scrolling manages to load within a reasonable number of iterations.
+- The caption track's language isn't selectable: whichever track YouTube opens in the panel by default is the one that gets read. If a video has several tracks and you need a specific one, switch it in the transcript panel by hand and press Copy again.
+- Auto-generated captions arrive without punctuation or capitalization and with misheard words and names — transcript quality sets summary quality. The transcript prompt templates warn the LLM about this explicitly, but they can't recover what the recognizer lost.
+- A long video's transcript may not fit in one prompt: an hour of video runs to roughly 50,000 characters, and past `maxTranscriptChars` the text is cut with a marker. There is no chunking (map-reduce over parts) — that would contradict the "one paste, no API" principle.
 - Auto-pasting text into the LLM chat isn't a core guarantee — it's implemented as an **experimental bonus** (`content/autopaste.js`) for ChatGPT/Claude/Gemini/Perplexity: after the tab opens and finishes loading, the extension tries to find the input field and paste the text into it. If the site's selectors change and pasting fails, that's not considered a pipeline error — the text is already in the clipboard and can be pasted manually (Ctrl+V). For Custom URL, no auto-paste is attempted — only copy and tab-open.
 - The language of the buttons on the YouTube page is fixed at the moment they're created (on load/navigation to a video). If you change the language in options while a YouTube tab is already open, the page's buttons only update after that tab is reloaded — the popup updates immediately every time it's opened.

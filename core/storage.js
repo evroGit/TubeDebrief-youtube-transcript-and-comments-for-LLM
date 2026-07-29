@@ -1,7 +1,11 @@
 // Settings persistence via chrome.storage.local.
 // Requires core/i18n.js to be loaded first (DEFAULT_UI_LANGUAGE, getDefaultPromptTemplate).
 
+// contentSource defaults to 'comments' so an existing install keeps behaving
+// exactly as before the transcript source was added; the transcript settings
+// below only come into play once it is switched to 'transcript' or 'both'.
 const DEFAULT_SETTINGS = {
+  contentSource: DEFAULT_CONTENT_SOURCE,
   minChars: 150,
   minWords: 20,
   maxComments: 40,
@@ -9,8 +13,26 @@ const DEFAULT_SETTINGS = {
   includeReplies: true,
   customLLMUrl: '',
   uiLanguage: DEFAULT_UI_LANGUAGE,
-  promptTemplate: getDefaultPromptTemplate(DEFAULT_UI_LANGUAGE),
+  transcriptTimestampInterval: 30,
+  maxTranscriptChars: 100000,
+  promptTemplate: getDefaultPromptTemplate(DEFAULT_UI_LANGUAGE, 'comments'),
+  transcriptPromptTemplate: getDefaultPromptTemplate(DEFAULT_UI_LANGUAGE, 'transcript'),
+  combinedPromptTemplate: getDefaultPromptTemplate(DEFAULT_UI_LANGUAGE, 'both'),
 };
+
+// Which stored template a Copy run should use. Keyed by what was actually
+// collected rather than by the setting, so a 'both' run that found no
+// transcript still gets comment-only instructions instead of a prompt that
+// promises a transcript section that isn't there.
+const PROMPT_TEMPLATE_KEYS = {
+  comments: 'promptTemplate',
+  transcript: 'transcriptPromptTemplate',
+  both: 'combinedPromptTemplate',
+};
+
+function promptTemplateFor(settings, source) {
+  return settings[PROMPT_TEMPLATE_KEYS[source] || PROMPT_TEMPLATE_KEYS.comments];
+}
 
 async function getSettings() {
   const stored = await chrome.storage.local.get(DEFAULT_SETTINGS);

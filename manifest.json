@@ -31,6 +31,7 @@
         "core/promptBuilder.js",
         "core/clipboard.js",
         "core/commentCollector.js",
+        "core/transcriptCollector.js",
         "core/openTarget.js",
         "content/youtube.js"
       ],

@@ -86,29 +86,50 @@
   <hr style="border:none;border-top:1px solid #eee;margin:18px 0;" />
 
   <label>
+    <span data-i18n="labelContentSource">Что собирать</span>
+    <select id="contentSource">
+      <option value="comments" data-i18n="sourceComments">Комментарии</option>
+      <option value="transcript" data-i18n="sourceTranscript">Транскрипт</option>
+      <option value="both" data-i18n="sourceBoth">Транскрипт + комментарии</option>
+    </select>
+  </label>
+
+  <label class="comment-setting">
     <span data-i18n="labelMinChars">Min length (символов)</span>
     <input type="number" id="minChars" min="0" />
   </label>
 
-  <label>
+  <label class="comment-setting">
     <span data-i18n="labelMinWords">Min words</span>
     <input type="number" id="minWords" min="0" />
   </label>
 
-  <label>
+  <label class="comment-setting">
     <span data-i18n="labelMaxComments">Max comments</span>
     <input type="number" id="maxComments" min="1" />
   </label>
 
-  <label>
+  <label class="comment-setting">
     <span data-i18n="labelMaxTotalChars">Max total characters</span>
     <input type="number" id="maxTotalChars" min="1000" />
   </label>
 
-  <div class="row">
+  <div class="row comment-setting">
     <input type="checkbox" id="includeReplies" />
     <label for="includeReplies" style="margin:0;" data-i18n="labelIncludeReplies">Include replies</label>
   </div>
+
+  <label class="transcript-setting">
+    <span data-i18n="labelTimestampInterval">Таймкод раз в N секунд (0 — без таймкодов)</span>
+    <input type="number" id="transcriptTimestampInterval" min="0" />
+    <div class="hint" data-i18n="hintTimestampInterval"></div>
+  </label>
+
+  <label class="transcript-setting">
+    <span data-i18n="labelMaxTranscriptChars">Max characters транскрипта</span>
+    <input type="number" id="maxTranscriptChars" min="1000" />
+    <div class="hint" data-i18n="hintMaxTranscriptChars"></div>
+  </label>
 
   <label>
     <span data-i18n="labelCustomUrl">Custom URL (для кнопки "Open Custom")</span>
@@ -116,12 +137,13 @@
   </label>
 
   <label>
-    <span data-i18n="labelPromptTemplate">Prompt для LLM</span>
-    <textarea id="promptTemplate" spellcheck="false"></textarea>
-    <div class="hint" data-i18n="hintPromptTemplate">
-      Плейсхолдеры: <code>{{videoTitle}}</code>, <code>{{videoUrl}}</code>, <code>{{count}}</code>.
-      Список комментариев <code>[1] ... [2] ...</code> добавляется автоматически после этого текста.
-    </div>
+    <!-- Text is set by applyTranslations() from the selected source, not via
+         data-i18n, since the key itself changes with the source. -->
+    <span id="prompt-label">Prompt для LLM (комментарии)</span>
+    <textarea id="promptTemplate" spellcheck="false" data-source="comments"></textarea>
+    <textarea id="transcriptPromptTemplate" spellcheck="false" data-source="transcript"></textarea>
+    <textarea id="combinedPromptTemplate" spellcheck="false" data-source="both"></textarea>
+    <div class="hint" data-i18n="hintPromptTemplate"></div>
   </label>
 
   <button id="reset-prompt" class="secondary" type="button" data-i18n="buttonResetPrompt">Восстановить prompt по умолчанию</button>
