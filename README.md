@@ -12,13 +12,57 @@ No batching, no LLM API integration, no mandatory side panel — maximum simplic
 2. Pick what to collect in the popup (`What to collect`): **comments**, **transcript**, or **both**. Comments is the default.
 3. Click **"Copy"** — either the button on the page itself (next to like/dislike), or the one in the extension's popup.
 4. If the transcript is wanted: the extension expands the description, opens YouTube's transcript panel, and reads its segments. Segments are grouped into paragraphs — a new `[mm:ss]` paragraph starts at most once every `transcriptTimestampInterval` seconds, so timestamps don't eat the whole prompt.
-5. If comments are wanted: the extension switches the comment sort to "Top comments", then scrolls the page, loading comments (and expanding replies, if enabled), until it collects enough comments / characters. A local filter drops empty, emoji-only, link-only, and duplicate comments, keeping only those at least `minChars`/`minWords` long.
+5. If comments are wanted: the extension switches the comment sort to "Top comments", then scrolls the page, loading comments (and expanding replies, if enabled), until it collects enough comments / characters. A local filter drops empty, emoji-only, link-only, and duplicate comments, keeping only those at least `minChars`/`minWords` long. What survives is then ordered **longest first**, and `maxComments`/`maxTotalChars` are spent from the top of that order — so the "Top comments" sort decides which comments get *loaded*, while length decides which of them make it into the prompt and in what order.
 6. A single text is assembled: instructions for the LLM (a separate template per mode) + the transcript and/or a numbered comment list like `[1] (👍 245, 87 chars) text...`, and saved (`chrome.storage.local`) as the "last copied text". When both sources end up in the prompt they are separated by `=== TRANSCRIPT ===` and `=== COMMENTS (N) ===` headers; with a single source no headers are added.
 7. The text is copied to the clipboard.
 8. **Separately**, as many times as you like, click any of **"Open ChatGPT" / "Open Claude" / "Open Gemini" / "Open Perplexity" / "Open Custom"** — each opens a new tab with that site and tries to auto-paste the saved text into it. Collection isn't repeated — you can open all five LLMs in a row from a single Copy.
 9. If auto-paste didn't work, paste manually (Ctrl+V) — the text is already in the clipboard.
 
 Open buttons stay disabled (and Copy shows no checkmark) until a prompt has actually been collected for the video currently on screen — navigating to a different video without pressing Copy again re-disables them, so an Open click can never send a different video's stale prompt.
+
+## What lands in the clipboard
+
+In **both** mode, with the default template and `transcriptTimestampInterval` at 30:
+
+```
+You are analyzing a YouTube video: its transcript (captions) and the comments under it.
+Video: "Why the numbers changed"
+Link: https://www.youtube.com/watch?v=abc123
+
+The transcript comes from captions and may be auto-generated: expect missing
+punctuation and misheard words and names. Take that into account.
+The comments were picked by a local length filter — not every comment under the
+video, but the 2 most detailed ones.
+
+In your answer return:
+1. A short summary of the video itself, based on the transcript.
+...
+
+Below are the transcript and the comments:
+
+=== TRANSCRIPT ===
+[0:00] so the first thing to understand about this is that it was never really about the hardware
+[0:31] and by 2019 the whole approach had shifted which is why the numbers look the way they do
+
+=== COMMENTS (2) ===
+[1] (👍 1.2K, 101 chars) I worked on exactly this problem for four years and the part everyone misses is the calibration drift.
+[2] (👍 318, 90 chars) Great breakdown, though the 2019 figure is closer to 40% if you count the revised baseline.
+```
+
+Everything above `=== TRANSCRIPT ===` is the editable template; everything below it is assembled mechanically. Like counts come straight from YouTube as formatted strings (`1.2K`), unparsed, to avoid locale-specific number handling.
+
+## Status icon and badge
+
+The toolbar icon doubles as the progress indicator, so a Copy started from the page is visible even with the popup closed:
+
+| Icon | Badge | Meaning |
+|---|---|---|
+| default | — | idle, or a new video was navigated to |
+| collecting | count | collection in progress; the badge counts matching comments (or transcript segments) so far |
+| done | — | a prompt was collected and copied for this video |
+| error | `!` | collection failed; the popup shows the message |
+
+The state is per tab. The last error is also kept in storage, so opening the popup after the fact still shows what went wrong instead of an empty status line.
 
 ## Data source: DOM scraping
 
@@ -51,6 +95,7 @@ The transcript is read from the same transcript panel YouTube shows the user beh
 | `combinedPromptTemplate` | options | the same for **both** mode: additionally asks where the comments agree with or contradict the video |
 | `lastPromptText` | internal | the last collected text, used by all Open buttons |
 | `lastPromptVideoId` | internal | the video id the last collected text belongs to, used to gate the Open buttons |
+| `lastError` | internal | the single most recent error (message + timestamp), shown when the popup opens. Only the latest one is kept — no growing log |
 
 All three prompt templates are editable in options, but only the selected mode's template is visible at a time — the others are saved as they are. On a language switch each template is swapped to that language's default only if it hasn't been customized yet; custom text is left untouched.
 
@@ -77,7 +122,21 @@ core/storage.js                — wrapper over chrome.storage.local with defaul
 core/openTarget.js             — shared "open an LLM with the last text" action, used by both the popup and the content script
 ```
 
-`core/*` modules are loaded as plain classic scripts (no build/bundler — matches the "maximum simplicity" principle) and share a global scope within whichever context they're injected into (content script, or popup/options).
+`core/*` modules are loaded as plain classic scripts (no build/bundler — matches the "maximum simplicity" principle) and share a global scope within whichever context they're injected into (content script, or popup/options). The load order in `manifest.json` is therefore load-bearing: `core/i18n.js` must precede `core/storage.js` (whose defaults call `getDefaultPromptTemplate`), and `core/commentCollector.js` must precede `core/transcriptCollector.js` (which reuses its `sleep`).
+
+There is no test suite. The side effect of having no bundler is that the pure modules — `filter.js`, `promptBuilder.js`, `i18n.js` — are plain globals with no `chrome.*` calls in them, so they can be loaded into a Node `vm` context and exercised directly (filtering, segment grouping, truncation, prompt assembly) without a browser. Everything that touches the DOM or `chrome.*` needs a real unpacked install to verify.
+
+## Permissions, and why each one is needed
+
+| Permission | Why |
+|---|---|
+| `storage` | settings, the last collected prompt, and the last error (`chrome.storage.local`) |
+| `activeTab`, `scripting` | letting the popup's Copy button run the pipeline in the active YouTube tab |
+| `offscreen`, `clipboardWrite` | writing to the clipboard from an offscreen document, which — unlike a tab or the popup — has no "document must be focused" requirement |
+| `host_permissions` for `youtube.com` | injecting the Copy/Open buttons and reading comments and the transcript |
+| `host_permissions` for the four LLM sites | the experimental auto-paste content script. Remove a site here and its Open button still opens the tab — only auto-paste stops |
+
+No `tabs` permission, no remote code, and no network requests of the extension's own: everything it reads is already in the page.
 
 ## Installing as an unpacked extension
 
@@ -98,3 +157,4 @@ core/openTarget.js             — shared "open an LLM with the last text" actio
 - A long video's transcript may not fit in one prompt: an hour of video runs to roughly 50,000 characters, and past `maxTranscriptChars` the text is cut with a marker. There is no chunking (map-reduce over parts) — that would contradict the "one paste, no API" principle.
 - Auto-pasting text into the LLM chat isn't a core guarantee — it's implemented as an **experimental bonus** (`content/autopaste.js`) for ChatGPT/Claude/Gemini/Perplexity: after the tab opens and finishes loading, the extension tries to find the input field and paste the text into it. If the site's selectors change and pasting fails, that's not considered a pipeline error — the text is already in the clipboard and can be pasted manually (Ctrl+V). For Custom URL, no auto-paste is attempted — only copy and tab-open.
 - The language of the buttons on the YouTube page is fixed at the moment they're created (on load/navigation to a video). If you change the language in options while a YouTube tab is already open, the page's buttons only update after that tab is reloaded — the popup updates immediately every time it's opened.
+- `uiLanguage` does not reach the manifest: the extension's name and description are hardcoded (and the description is Russian only), so they stay as-is in `chrome://extensions` and in the Web Store regardless of the selected language. Localizing them needs `_locales/` plus `default_locale` and `__MSG_*` references, which this MVP doesn't set up.

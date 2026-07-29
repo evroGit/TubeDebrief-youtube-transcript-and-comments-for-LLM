@@ -82,9 +82,9 @@ Es folgen {{count}} Kommentare:`,
 Транскрипт взят из субтитров и может быть распознан автоматически: возможны отсутствие пунктуации, ошибки в словах и именах, разбиение фраз не по смыслу. Учитывай это и не цитируй дословно явные ошибки распознавания.
 
 В ответе верни:
-1. Краткое summary: о чём видео и какие в нём основные тезисы.
-2. Разбор по смысловым блокам — с таймкодами, если они есть в транскрипте.
-3. Главные выводы, факты и цифры.
+1. Очень краткое summary: о чём видео и какие в нём основные тезисы.
+2. Разбор по смысловым блокам — с таймкодами, если они есть в транскрипте, если нет таймкодов, то кратко изложи содержание в 20 пунктах.
+3. Самые главные выводы, факты и цифры.
 
 Ниже транскрипт:`,
 
@@ -95,8 +95,8 @@ Link: {{videoUrl}}
 The transcript comes from captions and may be auto-generated: expect missing punctuation, misheard words and names, and phrases split at odd places. Take that into account and don't quote obvious recognition errors verbatim.
 
 In your answer return:
-1. A short summary: what the video is about and its main points.
-2. A breakdown by topic — with timestamps, if the transcript has them.
+1. A very short summary: what the video is about and its main points.
+2. A breakdown by topic — with timestamps, if the transcript has timestamps, otherwise, briefly outline the content in 20 points.
 3. The key conclusions, facts and figures.
 
 Below is the transcript:`,
@@ -108,8 +108,8 @@ Link: {{videoUrl}}
 Das Transkript stammt aus den Untertiteln und kann automatisch erzeugt sein: fehlende Satzzeichen, falsch erkannte Wörter und Namen sowie unsinnig getrennte Sätze sind möglich. Berücksichtige das und zitiere offensichtliche Erkennungsfehler nicht wörtlich.
 
 Gib in deiner Antwort zurück:
-1. Eine kurze Zusammenfassung: worum es im Video geht und welche Kernaussagen es enthält.
-2. Eine Gliederung nach Sinnabschnitten — mit Zeitmarken, sofern das Transkript welche enthält.
+1. Eine sehr kurze Zusammenfassung: worum es im Video geht und welche Kernaussagen es enthält.
+2. Eine Gliederung nach Sinnabschnitten — mit Zeitmarken, sofern das Transkript welche Zeitmarken enthält_ andernfalls den Inhalt in maximal 20 Punkten zusammenfassen.
 3. Die wichtigsten Schlussfolgerungen, Fakten und Zahlen.
 
 Es folgt das Transkript:`,
