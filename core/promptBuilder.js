@@ -25,35 +25,51 @@ function formatTimestamp(seconds) {
 // mostly timestamps by volume and reads as noise to an LLM. Grouping them into
 // paragraphs that start no more often than every `intervalSeconds` keeps a
 // usable time reference at a fraction of the character cost.
+//
+// A chapter boundary always starts its own group, whatever the interval: the
+// heading has to sit above the text it introduces, and with timestamps switched
+// off the transcript would otherwise collapse into a single paragraph and lose
+// the structure YouTube already worked out. Segments carry no chapter on a panel
+// that has none, which reproduces the previous grouping exactly.
 function groupTranscriptSegments(segments, intervalSeconds) {
-  if (!intervalSeconds) {
-    return [{ start: null, text: segments.map((segment) => segment.text).join(' ') }];
-  }
-
   const groups = [];
   let current = null;
+  let chapter = null;
 
   for (const segment of segments) {
-    const start = segment.seconds;
-    const startsNewGroup =
-      !current || start == null || current.start == null || start - current.start >= intervalSeconds;
+    const start = intervalSeconds ? segment.seconds : null;
+    const newChapter = segment.chapter && segment.chapter !== chapter ? segment.chapter : null;
+    const intervalElapsed =
+      Boolean(intervalSeconds) &&
+      (start == null || current?.start == null || start - current.start >= intervalSeconds);
 
-    if (startsNewGroup) {
-      current = { start, parts: [] };
+    if (!current || newChapter || intervalElapsed) {
+      current = { start, chapter: newChapter, parts: [] };
       groups.push(current);
     }
+    if (newChapter) chapter = newChapter;
     current.parts.push(segment.text);
   }
 
-  return groups.map((group) => ({ start: group.start, text: group.parts.join(' ') }));
+  return groups.map((group) => ({
+    start: group.start,
+    chapter: group.chapter,
+    text: group.parts.join(' '),
+  }));
 }
 
 // Cuts at a paragraph boundary rather than mid-sentence, and says so in the
 // text — a silently truncated transcript would have the LLM summarizing half a
 // video as if it were the whole thing.
 function formatTranscript(segments, settings, lang) {
+  // A chapter heading is folded into its paragraph rather than pushed as an
+  // entry of its own, so the budget below still counts every character it emits
+  // and can never cut between a heading and the text it introduces.
   const paragraphs = groupTranscriptSegments(segments, settings.transcriptTimestampInterval).map(
-    (group) => (group.start == null ? group.text : `[${formatTimestamp(group.start)}] ${group.text}`)
+    (group) => {
+      const body = group.start == null ? group.text : `[${formatTimestamp(group.start)}] ${group.text}`;
+      return group.chapter ? `## ${group.chapter}\n${body}` : body;
+    }
   );
 
   const limit = settings.maxTranscriptChars;

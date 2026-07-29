@@ -11,7 +11,7 @@ No batching, no LLM API integration, no mandatory side panel — maximum simplic
 1. Open a video at `youtube.com/watch...`.
 2. Pick what to collect in the popup (`What to collect`): **comments**, **transcript**, or **both**. Comments is the default.
 3. Click **"Copy"** — either the button on the page itself (next to like/dislike), or the one in the extension's popup.
-4. If the transcript is wanted: the extension expands the description, opens YouTube's transcript panel, and reads its segments. Segments are grouped into paragraphs — a new `[mm:ss]` paragraph starts at most once every `transcriptTimestampInterval` seconds, so timestamps don't eat the whole prompt.
+4. If the transcript is wanted: the extension expands the description, opens YouTube's transcript panel, and reads its segments. Segments are grouped into paragraphs — a new `[mm:ss]` paragraph starts at most once every `transcriptTimestampInterval` seconds, so timestamps don't eat the whole prompt. When the video has chapters, YouTube groups the panel by chapter and each title is emitted as a `## ` heading above its paragraphs — a boundary always starts a new paragraph, even with timestamps switched off, and the prompt templates tell the LLM those lines are titles rather than speech.
 5. If comments are wanted: the extension switches the comment sort to "Top comments", then scrolls the page, loading comments (and expanding replies, if enabled), until it collects enough comments / characters. A local filter drops empty, emoji-only, link-only, and duplicate comments, keeping only those at least `minChars`/`minWords` long. What survives is then ordered **longest first**, and `maxComments`/`maxTotalChars` are spent from the top of that order — so the "Top comments" sort decides which comments get *loaded*, while length decides which of them make it into the prompt and in what order.
 6. A single text is assembled: instructions for the LLM (a separate template per mode) + the transcript and/or a numbered comment list like `[1] (👍 245, 87 chars) text...`, and saved (`chrome.storage.local`) as the "last copied text". When both sources end up in the prompt they are separated by `=== TRANSCRIPT ===` and `=== COMMENTS (N) ===` headers; with a single source no headers are added.
 7. The text is copied to the clipboard.
@@ -88,7 +88,7 @@ The transcript is read from the same transcript panel YouTube shows the user beh
 | `includeReplies` | popup / options | whether to collect replies to comments |
 | `customLLMUrl` | popup / options | URL for the "Open Custom" button |
 | `uiLanguage` | options | interface language (popup, options, buttons/statuses on the YouTube page) and prompt language: `ru` / `en` / `de` |
-| `transcriptTimestampInterval` | options | a new `[mm:ss]` transcript paragraph starts at most once every N seconds. `0` — no timestamps at all (the whole transcript as one paragraph) |
+| `transcriptTimestampInterval` | options | a new `[mm:ss]` transcript paragraph starts at most once every N seconds. `0` — no timestamps at all (the whole transcript as one paragraph, or one per chapter if the video has chapters) |
 | `maxTranscriptChars` | options | character cap for the transcript. Past it the transcript is cut at a paragraph boundary (or, when the whole transcript is one paragraph, at a word boundary) and marked as cut in the text |
 | `promptTemplate` | options | LLM instructions for **comments** mode (placeholders `{{videoTitle}}`, `{{videoUrl}}`, `{{count}}`) |
 | `transcriptPromptTemplate` | options | the same for **transcript** mode: asks for a summary and a topic breakdown with timestamps, and warns the LLM the text may be auto-generated |
@@ -111,7 +111,7 @@ content/autopaste.js           — experimental: pastes text into the ChatGPT/Cl
 popup/popup.html, popup.js     — settings + Copy button + Open buttons for each LLM
 options/options.html, options.js — full settings set
 core/commentCollector.js       — scrolls the page, expands replies, collects raw text
-core/transcriptCollector.js    — opens YouTube's transcript panel and reads its segments (text + timestamp)
+core/transcriptCollector.js    — opens YouTube's transcript panel and reads its segments (text + timestamp + chapter)
 core/filter.js                 — local heuristic filter + deduplication + limits
 core/promptBuilder.js          — assembles the final text for the LLM
 core/i18n.js                   — UI string and prompt template dictionary for ru/en/de, t(lang, key) function
@@ -150,7 +150,7 @@ No `tabs` permission, no remote code, and no network requests of the extension's
 
 ## MVP limitations
 
-- YouTube's DOM selectors may change — if the "Copy" button stops collecting comments, the `ytd-comments` structure has likely changed and the selectors in `core/commentCollector.js` need updating. Same for the transcript: the panel selector (`ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-searchable-transcript"]`) and the segment selector (`ytd-transcript-segment-renderer`) live in `core/transcriptCollector.js`.
+- YouTube's DOM selectors may change — if the "Copy" button stops collecting comments, the `ytd-comments` structure has likely changed and the selectors in `core/commentCollector.js` need updating. The transcript panel is mid-migration from Polymer `ytd-*-renderer` elements to Lit `*-view-model` ones, and which generation a client gets varies by rollout, so `core/transcriptCollector.js` keeps both spellings in ordered lists (`SEGMENT_SELECTORS`, `SEGMENT_TEXT_SELECTORS`, `SEGMENT_TIMESTAMP_SELECTORS`, `TRANSCRIPT_PANEL_SELECTORS`, `SCROLLER_SELECTORS`, `CHAPTER_TITLE_SELECTORS`), newest first. Every lookup walks its list one selector at a time rather than joining it with commas — a comma-joined `querySelector` returns whichever match comes first in DOM order, not the first selector that hits, which throws away the priority the order encodes. To add a generation, prepend to the relevant list. When nothing readable is found, `logTranscriptDiagnostics()` prints to the console which assumption broke — panel, segment element, or segment internals — so start there rather than guessing.
 - Collection doesn't guarantee 100% of a video's comments — only what scrolling manages to load within a reasonable number of iterations.
 - The caption track's language isn't selectable: whichever track YouTube opens in the panel by default is the one that gets read. If a video has several tracks and you need a specific one, switch it in the transcript panel by hand and press Copy again.
 - Another installed transcript/summarizer extension can answer the "Show transcript" click with its own panel, so YouTube's never mounts and there is nothing for this extension to read. The toggle selectors target YouTube's own button wrapper specifically to avoid clicking a neighbour's injected control, but an extension that intercepts YouTube's own button can't be prevented. This case is reported separately from "no transcript available", with the workaround: open the native transcript panel on the page by hand and press Copy again — an already-open panel is read as-is, with no click of ours involved.

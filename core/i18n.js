@@ -80,6 +80,7 @@ Es folgen {{count}} Kommentare:`,
 Ссылка: {{videoUrl}}
 
 Транскрипт взят из субтитров и может быть распознан автоматически: возможны отсутствие пунктуации, ошибки в словах и именах, разбиение фраз не по смыслу. Учитывай это и не цитируй дословно явные ошибки распознавания.
+Строки, начинающиеся с "## ", — это названия глав, заданные автором видео, а не произнесённый текст; используй их как готовую структуру.
 
 В ответе верни:
 1. Очень краткое summary: о чём видео и какие в нём основные тезисы.
@@ -93,6 +94,7 @@ Video: "{{videoTitle}}"
 Link: {{videoUrl}}
 
 The transcript comes from captions and may be auto-generated: expect missing punctuation, misheard words and names, and phrases split at odd places. Take that into account and don't quote obvious recognition errors verbatim.
+Lines starting with "## " are the video's own chapter titles rather than spoken words — use them as a ready-made outline.
 
 In your answer return:
 1. A very short summary: what the video is about and its main points.
@@ -106,6 +108,7 @@ Video: "{{videoTitle}}"
 Link: {{videoUrl}}
 
 Das Transkript stammt aus den Untertiteln und kann automatisch erzeugt sein: fehlende Satzzeichen, falsch erkannte Wörter und Namen sowie unsinnig getrennte Sätze sind möglich. Berücksichtige das und zitiere offensichtliche Erkennungsfehler nicht wörtlich.
+Zeilen, die mit "## " beginnen, sind die Kapiteltitel des Videos selbst und kein gesprochener Text — nutze sie als vorgegebene Gliederung.
 
 Gib in deiner Antwort zurück:
 1. Eine sehr kurze Zusammenfassung: worum es im Video geht und welche Kernaussagen es enthält.
@@ -121,6 +124,7 @@ Es folgt das Transkript:`,
 Ссылка: {{videoUrl}}
 
 Транскрипт взят из субтитров и может быть распознан автоматически: возможны отсутствие пунктуации и ошибки в словах и именах. Учитывай это.
+Строки, начинающиеся с "## ", — это названия глав, заданные автором видео, а не произнесённый текст.
 Комментарии отобраны локальным фильтром по длине — это не все комментарии под видео, а {{count}} самых развёрнутых.
 
 В ответе верни:
@@ -136,6 +140,7 @@ Video: "{{videoTitle}}"
 Link: {{videoUrl}}
 
 The transcript comes from captions and may be auto-generated: expect missing punctuation and misheard words and names. Take that into account.
+Lines starting with "## " are the video's own chapter titles rather than spoken words.
 The comments were picked by a local length filter — not every comment under the video, but the {{count}} most detailed ones.
 
 In your answer return:
@@ -151,6 +156,7 @@ Video: "{{videoTitle}}"
 Link: {{videoUrl}}
 
 Das Transkript stammt aus den Untertiteln und kann automatisch erzeugt sein: fehlende Satzzeichen und falsch erkannte Wörter und Namen sind möglich. Berücksichtige das.
+Zeilen, die mit "## " beginnen, sind die Kapiteltitel des Videos selbst und kein gesprochener Text.
 Die Kommentare wurden von einem lokalen Längenfilter ausgewählt — nicht alle Kommentare unter dem Video, sondern die {{count}} ausführlichsten.
 
 Gib in deiner Antwort zurück:
