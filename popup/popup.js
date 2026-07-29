@@ -27,6 +27,14 @@ function applyTranslations(lang) {
   customUrlInput.placeholder = t(lang, 'placeholderCustomUrl');
 }
 
+// The popup shows this while it waits for the content script, which reports its
+// own per-phase status on the page. Every mode that includes the transcript
+// collects it first, so that is what is actually happening at this moment —
+// saying "collecting comments" in transcript mode would just be wrong.
+function collectingStatusKey() {
+  return contentSourceInput.value === 'comments' ? 'statusCollecting' : 'statusCollectingTranscript';
+}
+
 // The comment-only filter inputs are pointless while collecting a transcript
 // alone, so they follow the selected source instead of sitting there inert.
 function syncCommentFieldsVisibility() {
@@ -96,7 +104,7 @@ optionsLink.addEventListener('click', (e) => {
 // without re-running collection each time.
 copyButton.addEventListener('click', async () => {
   copyButton.disabled = true;
-  setStatus(t(currentLang, 'statusCollecting'), false);
+  setStatus(t(currentLang, collectingStatusKey()), false);
 
   await persistForm();
 

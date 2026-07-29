@@ -6,10 +6,15 @@
 // first (classic scripts sharing one global scope, same as storage.js relying
 // on i18n.js).
 
-// A transcript is only offered when the video actually has captions, so
-// "button not found" and "no captions" are the same outcome for us. The caller
-// maps this to the statusNoTranscript message.
+// This video has no transcript to read at all — no panel, no control for one.
 const TRANSCRIPT_UNAVAILABLE = 'transcript-unavailable';
+
+// YouTube does offer a transcript here, but it never showed up after we asked
+// for it. The usual cause is another transcript/summarizer extension answering
+// the click with its own panel, which we can't read and can't prevent — so this
+// is reported separately, with the manual workaround, instead of claiming the
+// video has no captions.
+const TRANSCRIPT_PANEL_BLOCKED = 'transcript-panel-blocked';
 
 const TRANSCRIPT_PANEL_SELECTOR =
   'ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-searchable-transcript"]';
@@ -54,25 +59,54 @@ function expandDescription() {
   expander?.click();
 }
 
+// Ordered most specific first and queried one at a time: a plain
+// `<renderer> button` matches ANY button inside the section, including ones
+// injected there by other transcript/summarizer extensions — and a single
+// comma-joined querySelector would return whichever comes first in DOM order,
+// not whichever selector is listed first. Clicking a foreign button opens that
+// extension's own panel while YouTube's never mounts, which looks exactly like
+// "this video has no transcript". YouTube's own control is wrapped in
+// #primary-button / ytd-button-renderer, so those tiers match it and not a
+// neighbour's injected markup.
+const TRANSCRIPT_TOGGLE_SELECTORS = [
+  'ytd-video-description-transcript-section-renderer #primary-button button',
+  'ytd-video-description-transcript-section-renderer ytd-button-renderer button',
+  'ytd-video-description-transcript-section-renderer button',
+];
+
 function findTranscriptToggle() {
-  return document.querySelector(
-    'ytd-video-description-transcript-section-renderer button, ' +
-      '#structured-description ytd-video-description-transcript-section-renderer button'
-  );
+  for (const selector of TRANSCRIPT_TOGGLE_SELECTORS) {
+    const toggle = document.querySelector(selector);
+    if (toggle) return toggle;
+  }
+  return null;
+}
+
+// Whether YouTube itself thinks this video has a transcript, independent of
+// whether our click managed to open it: the engagement panel is rendered into
+// the DOM (hidden) for videos that have captions. Used to tell a genuinely
+// caption-less video apart from a panel we failed to open.
+function transcriptExistsForVideo() {
+  return Boolean(getTranscriptPanel() || findTranscriptToggle());
 }
 
 async function openTranscriptPanel() {
   if (readTranscriptSegments().length > 0) return true;
 
-  expandDescription();
-  await sleep(400);
-
-  const toggle = findTranscriptToggle();
+  // Only expand the description if the control isn't reachable already — every
+  // extra synthetic click is another chance to set off someone else's UI.
+  let toggle = findTranscriptToggle();
+  if (!toggle) {
+    expandDescription();
+    await sleep(400);
+    toggle = findTranscriptToggle();
+  }
   if (!toggle) return false;
 
   toggle.click();
 
-  // The panel mounts and fetches its segments asynchronously.
+  // The panel mounts and fetches its segments asynchronously. Only YouTube's
+  // own segments count — another extension's panel opening is not success.
   for (let attempt = 0; attempt < 20; attempt += 1) {
     await sleep(250);
     if (readTranscriptSegments().length > 0) return true;
@@ -116,12 +150,14 @@ async function loadAllSegments(onProgress) {
 }
 
 // Returns an array of { text, seconds } in playback order, or throws
-// TRANSCRIPT_UNAVAILABLE if this video has no transcript to read.
+// TRANSCRIPT_UNAVAILABLE / TRANSCRIPT_PANEL_BLOCKED (see the top of this file).
 async function collectTranscript({ onProgress } = {}) {
   const opened = await openTranscriptPanel();
-  if (!opened) throw new Error(TRANSCRIPT_UNAVAILABLE);
+  if (!opened) {
+    throw new Error(transcriptExistsForVideo() ? TRANSCRIPT_PANEL_BLOCKED : TRANSCRIPT_UNAVAILABLE);
+  }
 
   const segments = await loadAllSegments(onProgress);
-  if (segments.length === 0) throw new Error(TRANSCRIPT_UNAVAILABLE);
+  if (segments.length === 0) throw new Error(TRANSCRIPT_PANEL_BLOCKED);
   return segments;
 }

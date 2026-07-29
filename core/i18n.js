@@ -216,6 +216,8 @@ const UI_STRINGS = {
     statusCollectingProgress: (raw, filtered) => `Собрано ${raw} (подходит ${filtered})…`,
     statusNoComments: 'Подходящих комментариев не найдено',
     statusNoTranscript: 'У этого видео нет доступного транскрипта',
+    statusTranscriptBlocked:
+      'Панель транскрипта YouTube не открылась — возможно, клик перехватывает другое расширение. Откройте транскрипт на странице вручную и нажмите Copy снова.',
     noticeTranscriptUnavailable: 'транскрипт недоступен',
     collectedComments: (count) => `${count} комментариев`,
     collectedTranscript: 'транскрипт',
@@ -274,6 +276,8 @@ const UI_STRINGS = {
     statusCollectingProgress: (raw, filtered) => `Collected ${raw} (${filtered} match)…`,
     statusNoComments: 'No matching comments found',
     statusNoTranscript: 'No transcript available for this video',
+    statusTranscriptBlocked:
+      "YouTube's transcript panel didn't open — another extension may be intercepting the click. Open the transcript on the page manually, then press Copy again.",
     noticeTranscriptUnavailable: 'transcript unavailable',
     collectedComments: (count) => `${count} comments`,
     collectedTranscript: 'the transcript',
@@ -332,6 +336,8 @@ const UI_STRINGS = {
     statusCollectingProgress: (raw, filtered) => `${raw} gesammelt (${filtered} passend)…`,
     statusNoComments: 'Keine passenden Kommentare gefunden',
     statusNoTranscript: 'Für dieses Video ist kein Transkript verfügbar',
+    statusTranscriptBlocked:
+      'Das Transkript-Panel von YouTube wurde nicht geöffnet — möglicherweise fängt eine andere Erweiterung den Klick ab. Öffne das Transkript auf der Seite manuell und drücke erneut Copy.',
     noticeTranscriptUnavailable: 'Transkript nicht verfügbar',
     collectedComments: (count) => `${count} Kommentare`,
     collectedTranscript: 'das Transkript',

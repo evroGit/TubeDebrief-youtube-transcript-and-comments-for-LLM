@@ -141,7 +141,13 @@ async function collectSources(settings, lang) {
         },
       });
     } catch (err) {
-      if (err?.message !== TRANSCRIPT_UNAVAILABLE || !wantComments) throw err;
+      const noTranscript =
+        err?.message === TRANSCRIPT_UNAVAILABLE || err?.message === TRANSCRIPT_PANEL_BLOCKED;
+      if (!noTranscript || !wantComments) throw err;
+      // 'both' mode: carry on with comments alone. The specific reason only
+      // reaches the console here — the status line reports the successful copy,
+      // and turning that into an error would be wrong.
+      console.warn('[yt-llm] continuing without a transcript:', err.message);
       transcriptUnavailable = true;
     }
   }
@@ -219,12 +225,15 @@ async function onCopyClick() {
   } catch (err) {
     console.error('[yt-llm] collect failed', err);
     const settings = await getSettings();
-    // TRANSCRIPT_UNAVAILABLE is a sentinel, not a sentence — reaching here means
-    // the transcript was the only requested source, so translate it for the user.
-    const message =
-      err?.message === TRANSCRIPT_UNAVAILABLE
-        ? t(settings.uiLanguage, 'statusNoTranscript')
-        : err?.message || t(settings.uiLanguage, 'statusErrorGeneric');
+    // The transcript sentinels are keys, not sentences — reaching here means the
+    // transcript was the only requested source, so translate them for the user.
+    const TRANSCRIPT_ERROR_KEYS = {
+      [TRANSCRIPT_UNAVAILABLE]: 'statusNoTranscript',
+      [TRANSCRIPT_PANEL_BLOCKED]: 'statusTranscriptBlocked',
+    };
+    const message = TRANSCRIPT_ERROR_KEYS[err?.message]
+      ? t(settings.uiLanguage, TRANSCRIPT_ERROR_KEYS[err.message])
+      : err?.message || t(settings.uiLanguage, 'statusErrorGeneric');
     setStatus(message, true);
     await saveLastError(message);
     chrome.runtime.sendMessage({ type: 'progress-update', status: 'error' });
