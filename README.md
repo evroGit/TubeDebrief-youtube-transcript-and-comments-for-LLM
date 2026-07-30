@@ -2,7 +2,7 @@
 
 *[Читать на русском](README.ru.md)*
 
-Chrome extension: collects the comments and/or the transcript (captions) of the current YouTube video, builds one big prompt, and copies it to the clipboard — pasting it into ChatGPT/Claude/Gemini/Perplexity is up to the user (or handled by the experimental auto-paste).
+Chrome extension: collects the comments and/or the transcript (captions) of the current YouTube video, builds one big prompt, and copies it to the clipboard — pasting it into ChatGPT/Claude/Gemini/Perplexity/DeepSeek is up to the user (or handled by the experimental auto-paste).
 
 No batching, no LLM API integration, no mandatory side panel — maximum simplicity.
 
@@ -15,7 +15,7 @@ No batching, no LLM API integration, no mandatory side panel — maximum simplic
 5. If comments are wanted: the extension switches the comment sort to "Top comments", then scrolls the page, loading comments (and expanding replies, if enabled), until it collects enough comments / characters. A local filter drops empty, emoji-only, link-only, and duplicate comments, keeping only those at least `minChars`/`minWords` long. What survives is then ordered **longest first**, and `maxComments`/`maxTotalChars` are spent from the top of that order — so the "Top comments" sort decides which comments get *loaded*, while length decides which of them make it into the prompt and in what order.
 6. A single text is assembled: instructions for the LLM (a separate template per mode) + the transcript and/or a numbered comment list like `[1] (👍 245, 87 chars) text...`, and saved (`chrome.storage.local`) as the "last copied text". When both sources end up in the prompt they are separated by `=== TRANSCRIPT ===` and `=== COMMENTS (N) ===` headers; with a single source no headers are added.
 7. The text is copied to the clipboard.
-8. **Separately**, as many times as you like, click any of **"Open ChatGPT" / "Open Claude" / "Open Gemini" / "Open Perplexity" / "Open Custom"** — each opens a new tab with that site and tries to auto-paste the saved text into it. Collection isn't repeated — you can open all five LLMs in a row from a single Copy.
+8. **Separately**, as many times as you like, click any of **"Open ChatGPT" / "Open Claude" / "Open Gemini" / "Open Perplexity" / "Open DeepSeek"** — each opens a new tab with that site and tries to auto-paste the saved text into it. Collection isn't repeated — you can open all five LLMs in a row from a single Copy.
 9. If auto-paste didn't work, paste manually (Ctrl+V) — the text is already in the clipboard.
 
 Open buttons stay disabled (and Copy shows no checkmark) until a prompt has actually been collected for the video currently on screen — navigating to a different video without pressing Copy again re-disables them, so an Open click can never send a different video's stale prompt.
@@ -86,7 +86,6 @@ The transcript is read from the same transcript panel YouTube shows the user beh
 | `maxComments` | popup / options | maximum number of selected comments |
 | `maxTotalChars` | options | maximum total character volume of comments |
 | `includeReplies` | popup / options | whether to collect replies to comments |
-| `customLLMUrl` | popup / options | URL for the "Open Custom" button |
 | `uiLanguage` | options | interface language (popup, options, buttons/statuses on the YouTube page) and prompt language: `ru` / `en` / `de` |
 | `transcriptTimestampInterval` | options | a new `[mm:ss]` transcript paragraph starts at most once every N seconds. `0` — no timestamps at all (the whole transcript as one paragraph, or one per chapter if the video has chapters) |
 | `maxTranscriptChars` | options | character cap for the transcript. Past it the transcript is cut at a paragraph boundary (or, when the whole transcript is one paragraph, at a word boundary) and marked as cut in the text |
@@ -107,7 +106,7 @@ In **both** mode a missing transcript is not an error: a video without captions 
 manifest.json
 background/service-worker.js   — opens the LLM tab, waits for it to load, sends it the text for auto-paste; status icon + comment-count badge
 content/youtube.js             — injects Copy + Open×5 buttons, orchestrates collect → filter → build → copy
-content/autopaste.js           — experimental: pastes text into the ChatGPT/Claude/Gemini/Perplexity input field
+content/autopaste.js           — experimental: pastes text into the ChatGPT/Claude/Gemini/Perplexity/DeepSeek input field
 popup/popup.html, popup.js     — settings + Copy button + Open buttons for each LLM
 options/options.html, options.js — full settings set
 core/commentCollector.js       — scrolls the page, expands replies, collects raw text
@@ -156,6 +155,6 @@ No `tabs` permission, no remote code, and no network requests of the extension's
 - Another installed transcript/summarizer extension can answer the "Show transcript" click with its own panel, so YouTube's never mounts and there is nothing for this extension to read. The toggle selectors target YouTube's own button wrapper specifically to avoid clicking a neighbour's injected control, but an extension that intercepts YouTube's own button can't be prevented. This case is reported separately from "no transcript available", with the workaround: open the native transcript panel on the page by hand and press Copy again — an already-open panel is read as-is, with no click of ours involved.
 - Auto-generated captions arrive without punctuation or capitalization and with misheard words and names — transcript quality sets summary quality. The transcript prompt templates warn the LLM about this explicitly, but they can't recover what the recognizer lost.
 - A long video's transcript may not fit in one prompt: an hour of video runs to roughly 50,000 characters, and past `maxTranscriptChars` the text is cut with a marker. There is no chunking (map-reduce over parts) — that would contradict the "one paste, no API" principle.
-- Auto-pasting text into the LLM chat isn't a core guarantee — it's implemented as an **experimental bonus** (`content/autopaste.js`) for ChatGPT/Claude/Gemini/Perplexity: after the tab opens and finishes loading, the extension tries to find the input field and paste the text into it. If the site's selectors change and pasting fails, that's not considered a pipeline error — the text is already in the clipboard and can be pasted manually (Ctrl+V). For Custom URL, no auto-paste is attempted — only copy and tab-open.
+- Auto-pasting text into the LLM chat isn't a core guarantee — it's implemented as an **experimental bonus** (`content/autopaste.js`) for ChatGPT/Claude/Gemini/Perplexity/DeepSeek: after the tab opens and finishes loading, the extension tries to find the input field and paste the text into it. If the site's selectors change and pasting fails, that's not considered a pipeline error — the text is already in the clipboard and can be pasted manually (Ctrl+V).
 - The language of the buttons on the YouTube page is fixed at the moment they're created (on load/navigation to a video). If you change the language in options while a YouTube tab is already open, the page's buttons only update after that tab is reloaded — the popup updates immediately every time it's opened.
 - `uiLanguage` does not reach the manifest: the extension's name and description are hardcoded (and the description is Russian only), so they stay as-is in `chrome://extensions` and in the Web Store regardless of the selected language. Localizing them needs `_locales/` plus `default_locale` and `__MSG_*` references, which this MVP doesn't set up.

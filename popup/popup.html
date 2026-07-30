@@ -68,8 +68,7 @@
       border-radius: 6px;
       cursor: pointer;
     }
-    .open-targets button:disabled,
-    #open-custom-button:disabled {
+    .open-targets button:disabled {
       opacity: 0.5;
       cursor: default;
     }
@@ -77,21 +76,6 @@
       display: none;
       color: #fff;
       font-weight: 700;
-    }
-    #open-custom-row {
-      display: flex;
-      gap: 6px;
-      margin-top: 6px;
-    }
-    #open-custom-row button {
-      flex: 0 0 auto;
-      padding: 4px 10px;
-      font-size: 13px;
-      color: #065fd4;
-      background: #fff;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      cursor: pointer;
     }
     #status {
       margin-top: 8px;
@@ -146,11 +130,7 @@
     <button data-target="claude" disabled>Claude</button>
     <button data-target="gemini" disabled>Gemini</button>
     <button data-target="perplexity" disabled>Perplexity</button>
-  </div>
-
-  <div id="open-custom-row">
-    <input type="text" id="customLLMUrl" placeholder="Custom URL" />
-    <button id="open-custom-button" disabled>Open</button>
+    <button data-target="deepseek" disabled>DeepSeek</button>
   </div>
 
   <div id="status"></div>

@@ -6,8 +6,8 @@
 // against the video the stored prompt was actually collected for, so
 // navigating to a different video without pressing Copy again can't send
 // that video's stale prompt to the LLM.
-async function openLLMTarget(targetKey, customUrl, currentVideoUrl) {
-  const url = resolveTargetUrl(targetKey, customUrl);
+async function openLLMTarget(targetKey, currentVideoUrl) {
+  const url = resolveTargetUrl(targetKey);
   if (!url) return { ok: false, reason: 'no-url' };
 
   const text = await getLastPrompt();

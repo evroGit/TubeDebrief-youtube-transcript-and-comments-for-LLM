@@ -8,7 +8,6 @@ const fields = {
   includeReplies: document.getElementById('includeReplies'),
   transcriptTimestampInterval: document.getElementById('transcriptTimestampInterval'),
   maxTranscriptChars: document.getElementById('maxTranscriptChars'),
-  customLLMUrl: document.getElementById('customLLMUrl'),
   promptTemplate: document.getElementById('promptTemplate'),
   transcriptPromptTemplate: document.getElementById('transcriptPromptTemplate'),
   combinedPromptTemplate: document.getElementById('combinedPromptTemplate'),
@@ -67,7 +66,6 @@ async function load() {
   fields.includeReplies.checked = settings.includeReplies;
   fields.transcriptTimestampInterval.value = settings.transcriptTimestampInterval;
   fields.maxTranscriptChars.value = settings.maxTranscriptChars;
-  fields.customLLMUrl.value = settings.customLLMUrl;
   fields.promptTemplate.value = settings.promptTemplate;
   fields.transcriptPromptTemplate.value = settings.transcriptPromptTemplate;
   fields.combinedPromptTemplate.value = settings.combinedPromptTemplate;
@@ -113,7 +111,6 @@ saveButton.addEventListener('click', async () => {
     // "empty input" fallback that the other numeric fields use.
     transcriptTimestampInterval: Math.max(0, Number(fields.transcriptTimestampInterval.value) || 0),
     maxTranscriptChars: Number(fields.maxTranscriptChars.value) || 1000,
-    customLLMUrl: fields.customLLMUrl.value,
     promptTemplate: fields.promptTemplate.value,
     transcriptPromptTemplate: fields.transcriptPromptTemplate.value,
     combinedPromptTemplate: fields.combinedPromptTemplate.value,

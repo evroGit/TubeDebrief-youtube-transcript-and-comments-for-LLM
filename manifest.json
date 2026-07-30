@@ -10,7 +10,8 @@
     "https://chatgpt.com/*",
     "https://claude.ai/*",
     "https://gemini.google.com/*",
-    "https://www.perplexity.ai/*"
+    "https://www.perplexity.ai/*",
+    "https://chat.deepseek.com/*"
   ],
   "background": {
     "service_worker": "background/service-worker.js"
@@ -43,7 +44,8 @@
         "https://chatgpt.com/*",
         "https://claude.ai/*",
         "https://gemini.google.com/*",
-        "https://www.perplexity.ai/*"
+        "https://www.perplexity.ai/*",
+        "https://chat.deepseek.com/*"
       ],
       "js": ["content/autopaste.js"],
       "run_at": "document_idle"

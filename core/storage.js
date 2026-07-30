@@ -11,7 +11,6 @@ const DEFAULT_SETTINGS = {
   maxComments: 40,
   maxTotalChars: 60000,
   includeReplies: true,
-  customLLMUrl: '',
   uiLanguage: DEFAULT_UI_LANGUAGE,
   transcriptTimestampInterval: 30,
   maxTranscriptChars: 100000,

@@ -7,7 +7,7 @@ const WRAPPER_ID = 'yt-llm-wrapper';
 const COPY_BUTTON_ID = 'yt-llm-copy-button';
 const COPY_CHECK_ID = 'yt-llm-copy-check';
 const STATUS_ID = 'yt-llm-copy-status';
-const OPEN_TARGETS = ['chatgpt', 'claude', 'gemini', 'perplexity', 'custom'];
+const OPEN_TARGETS = ['chatgpt', 'claude', 'gemini', 'perplexity', 'deepseek'];
 const OPEN_BUTTON_CLASS = 'yt-llm-open-button';
 
 let mounting = false;
@@ -246,18 +246,18 @@ async function onCopyClick() {
 async function onOpenClick(targetKey) {
   const settings = await getSettings();
   const lang = settings.uiLanguage;
-  const result = await openLLMTarget(targetKey, settings.customLLMUrl, location.href);
+  const result = await openLLMTarget(targetKey, location.href);
 
   if (!result.ok && result.reason === 'no-text') {
     const message = t(lang, 'statusFirstCopy');
     setStatus(message, true);
     await saveLastError(message);
-  } else if (!result.ok && result.reason === 'no-url') {
-    const message = t(lang, 'statusSetCustomUrl');
-    setStatus(message, true);
-    await saveLastError(message);
   } else if (!result.ok && result.reason === 'stale-video') {
     const message = t(lang, 'statusVideoChanged');
+    setStatus(message, true);
+    await saveLastError(message);
+  } else if (!result.ok) {
+    const message = t(lang, 'statusErrorGeneric');
     setStatus(message, true);
     await saveLastError(message);
   }

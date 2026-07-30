@@ -10,6 +10,7 @@ const SELECTORS_BY_HOST = {
   'claude.ai': ['div[contenteditable="true"].ProseMirror', 'div[contenteditable="true"]'],
   'gemini.google.com': ['div.ql-editor[contenteditable="true"]', 'div[contenteditable="true"]', 'textarea'],
   'www.perplexity.ai': ['textarea[placeholder]', 'div[contenteditable="true"]', 'textarea'],
+  'chat.deepseek.com': ['#chat-input', 'textarea', 'div[contenteditable="true"]'],
 };
 
 function findInputElement() {
