@@ -3,6 +3,7 @@
   "name": "TubeDebrief — YouTube video + comments as one prompt for your LLM",
   "version": "1.0.0",
   "description": "Собирает транскрипт и комментарии YouTube-видео в один prompt для ChatGPT, Claude, Gemini, Perplexity и DeepSeek.",
+  "homepage_url": "https://github.com/evroGit/TubeDebrief-youtube-transcript-and-comments-for-LLM",
   "permissions": ["storage", "activeTab", "scripting", "offscreen", "clipboardWrite"],
   "host_permissions": [
     "https://www.youtube.com/*",
