@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Copy YouTube Comments for LLM",
+  "name": "TubeDebrief — YouTube video + comments as one prompt for your LLM",
   "version": "1.0.0",
-  "description": "Собирает комментарии под YouTube-видео, формирует готовый prompt и копирует его в буфер обмена для ручной вставки в ChatGPT/Claude/Gemini.",
+  "description": "Собирает транскрипт и комментарии YouTube-видео в один prompt для ChatGPT, Claude, Gemini, Perplexity и DeepSeek.",
   "permissions": ["storage", "activeTab", "scripting", "offscreen", "clipboardWrite"],
   "host_permissions": [
     "https://www.youtube.com/*",
@@ -18,7 +18,7 @@
   },
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "Copy for LLM"
+    "default_title": "TubeDebrief"
   },
   "options_page": "options/options.html",
   "content_scripts": [

@@ -182,7 +182,7 @@ function isKnownDefaultPromptTemplate(text) {
 
 const UI_STRINGS = {
   ru: {
-    optionsTitle: 'Copy for LLM — настройки',
+    optionsTitle: 'TubeDebrief — настройки',
     labelMinChars: 'Min length (символов)',
     labelMinWords: 'Min words',
     labelMaxComments: 'Max comments',
@@ -208,7 +208,7 @@ const UI_STRINGS = {
     buttonResetPrompt: 'Восстановить prompt по умолчанию',
     buttonSave: 'Сохранить',
     savedLabel: 'Сохранено ✓',
-    popupTitle: 'Copy for LLM',
+    popupTitle: 'TubeDebrief',
     buttonCopy: 'Copy',
     buttonOpenPrefix: 'Open',
     linkMoreSettings: 'Больше настроек',
@@ -238,7 +238,7 @@ const UI_STRINGS = {
     statusLastError: (time, message) => `Последняя ошибка (${time}): ${message}`,
   },
   en: {
-    optionsTitle: 'Copy for LLM — Settings',
+    optionsTitle: 'TubeDebrief — Settings',
     labelMinChars: 'Min length (characters)',
     labelMinWords: 'Min words',
     labelMaxComments: 'Max comments',
@@ -264,7 +264,7 @@ const UI_STRINGS = {
     buttonResetPrompt: 'Reset prompt to default',
     buttonSave: 'Save',
     savedLabel: 'Saved ✓',
-    popupTitle: 'Copy for LLM',
+    popupTitle: 'TubeDebrief',
     buttonCopy: 'Copy',
     buttonOpenPrefix: 'Open',
     linkMoreSettings: 'More settings',
@@ -294,7 +294,7 @@ const UI_STRINGS = {
     statusLastError: (time, message) => `Last error (${time}): ${message}`,
   },
   de: {
-    optionsTitle: 'Copy for LLM — Einstellungen',
+    optionsTitle: 'TubeDebrief — Einstellungen',
     labelMinChars: 'Min. Länge (Zeichen)',
     labelMinWords: 'Min. Wörter',
     labelMaxComments: 'Max. Kommentare',
@@ -320,7 +320,7 @@ const UI_STRINGS = {
     buttonResetPrompt: 'Prompt zurücksetzen',
     buttonSave: 'Speichern',
     savedLabel: 'Gespeichert ✓',
-    popupTitle: 'Copy for LLM',
+    popupTitle: 'TubeDebrief',
     buttonCopy: 'Copy',
     buttonOpenPrefix: 'Open',
     linkMoreSettings: 'Weitere Einstellungen',

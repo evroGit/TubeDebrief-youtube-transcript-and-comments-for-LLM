@@ -1,4 +1,4 @@
-# Copy YouTube Comments for LLM
+# TubeDebrief
 
 *[Читать на русском](README.ru.md)*
 
