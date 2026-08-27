@@ -27,7 +27,7 @@ const PROMPT_TEMPLATES = {
 - generic-похвалу без содержания ("круто", "супер видео" и т.п.);
 - оффтоп, не относящийся к теме видео.
 
-В ответе верни:
+В ответе верни (на русском):
 1. Общий summary обсуждения в комментариях.
 2. Лучшие комментарии (переведи на русский, если нужно) и краткий summary под каждым из комментариев.
 
@@ -110,7 +110,7 @@ Link: {{videoUrl}}
 Das Transkript stammt aus den Untertiteln und kann automatisch erzeugt sein: fehlende Satzzeichen, falsch erkannte Wörter und Namen sowie unsinnig getrennte Sätze sind möglich. Berücksichtige das und zitiere offensichtliche Erkennungsfehler nicht wörtlich.
 Zeilen, die mit "## " beginnen, sind die Kapiteltitel des Videos selbst und kein gesprochener Text — nutze sie als vorgegebene Gliederung.
 
-Gib in deiner Antwort zurück:
+Gib in deiner Antwort zurück (auf Deutsch):
 1. Eine sehr kurze Zusammenfassung: worum es im Video geht und welche Kernaussagen es enthält.
 2. Eine Gliederung nach Sinnabschnitten — mit Zeitmarken, sofern das Transkript welche Zeitmarken enthält_ andernfalls den Inhalt in maximal 20 Punkten zusammenfassen.
 3. Die wichtigsten Schlussfolgerungen, Fakten und Zahlen.
